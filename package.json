@@ -5,16 +5,23 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "start:dev": "nodemon run server.js"
+    "start:dev": "cross-env NODE_ENV=development nodemon config/server.js",
+    "start:prod": "cross-env NODE_ENV=production nodemon config/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cross-env": "^10.0.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
-    "mongoose": "^8.18.1"
+    "mongoose": "^8.18.1",
+    "nodemailer": "^7.0.6",
+    "pug": "^3.0.3",
+    "validate": "^5.2.0"
   }
 }
