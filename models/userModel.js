@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-
+const crypto = require('crypto');
 const validateEmail = function (email) {
   var re = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
   return re.test(email);
@@ -64,7 +64,7 @@ const UserSchema = new mongoose.Schema({
   // For passoword reset
   passwordResetToken: String,
   passwordExpiredResetToken: Date,
-
+  passwordChangedAt: Date,
   // for otp
   otp: { type: String },
   otpExpirationDate: {
@@ -86,6 +86,13 @@ UserSchema.pre('save', async function (next) {
   next();
 });
 
+// If the user changed his password so it will be checked on the protect middleware
+UserSchema.pre('save', function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+  this.passwordChangedAt = Date.now();
+  next();
+});
+
 // correct password which is available on all user instancess
 // This check that the entered user password after hashing will be equal to the hashed one in DB
 UserSchema.methods.correctPassword = async function (
@@ -95,5 +102,30 @@ UserSchema.methods.correctPassword = async function (
   return await bcrypt.compare(enteredPassword, hashedPassword);
 };
 
+// Helpful in protect middleware
+UserSchema.methods.isPasswordChanged = function (jwtTimeStamp) {
+  // jwtTimeStamp is the current decoded timestamp
+  if (this.passwordChangedAt) {
+    const passwordChanged = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return jwtTimeStamp < passwordChanged;
+  }
+  return false;
+};
+
+UserSchema.methods.generateRandomPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  // Hash the created token and store it hashed in the database
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // This token is valid for 10 min
+  this.passwordExpiredResetToken = new Date(Date.now() + 10 * 60 * 1000);
+  return resetToken;
+};
 const User = mongoose.model('User', UserSchema);
 module.exports = User;

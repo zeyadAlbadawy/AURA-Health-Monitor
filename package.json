@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "start:dev": "cross-env NODE_ENV=development nodemon config/server.js",
-    "start:prod": "cross-env NODE_ENV=production nodemon config/server.js"
+    "start:prod": "cross-env NODE_ENV=production nodemon config/server.js",
+    "watch:js": "parcel watch ./public/js/index.js --dist-dir ./public/js --out-file bundle.js",
+    "build:js": "parcel build ./public/js/index.js --dist-dir ./public/js --out-file bundle.js"
   },
   "keywords": [],
   "author": "",
@@ -15,13 +17,20 @@
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cross-env": "^10.0.0",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
     "nodemailer": "^7.0.6",
+    "passport": "^0.7.0",
+    "passport-google-oauth2": "^0.2.0",
     "pug": "^3.0.3",
     "validate": "^5.2.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.16.0"
   }
 }
