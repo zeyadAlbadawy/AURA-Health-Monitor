@@ -9,9 +9,9 @@ const sendErrorDev = (err, req, res) => {
     });
   } else {
     // Render error page
-    res
-      .status(err.statusCode)
-      .render('error', { title: 'Something went wrong', msg: err.message });
+    // res
+    //   .status(err.statusCode)
+    //   .render('error', { title: 'Something went wrong', msg: err.message });
   }
 };
 
@@ -59,16 +59,16 @@ const sendErrorProd = (err, req, res) => {
 
   // For RENDERING
   if (err.isOperational) {
-    return res
-      .status(err.statusCode)
-      .render('error', { title: 'Something went wrong', msg: err.message });
+    // return res
+    //   .status(err.statusCode)
+    //   .render('error', { title: 'Something went wrong', msg: err.message });
   }
 
   // Dont leak info if is is not operational
-  return res.status(err.statusCode).render('error', {
-    title: 'Something went wrong',
-    msg: 'try again later!',
-  });
+  // return res.status(err.statusCode).render('error', {
+  //   title: 'Something went wrong',
+  //   msg: 'try again later!',
+  // });
 };
 const globalErrorHandeler = (err, req, res, next) => {
   err.status = err.status || 'error';

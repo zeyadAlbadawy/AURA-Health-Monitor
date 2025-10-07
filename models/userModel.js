@@ -33,13 +33,24 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please provide your password'],
+    required: [
+      function () {
+        return !this.googleId;
+      },
+      'Please provide your password',
+    ],
     minLength: [8, 'The password should be greater than 8'],
     select: false,
   },
   passwordConfirm: {
     type: String,
-    required: [true, 'User Password Confirmation is required'],
+    required: [
+      function () {
+        return !this.googleId;
+      },
+      ,
+      'User Password Confirmation is required',
+    ],
     // works on create and save
     validate: {
       validator: function (val) {
@@ -61,6 +72,7 @@ const UserSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
   },
+
   // For passoword reset
   passwordResetToken: String,
   passwordExpiredResetToken: Date,
@@ -71,6 +83,8 @@ const UserSchema = new mongoose.Schema({
     type: Date,
   },
 
+  // Google Session Managemet
+  googleId: String,
   createdAt: {
     type: Date,
     default: new Date(Date.now()),

@@ -2,14 +2,17 @@ const express = require('express');
 const userRouter = require('./routers/userRouter');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
+const passportConfig = require('./middlewares/google-oauth20');
 const cookieParser = require('cookie-parser');
 const app = express();
-
+require('./config/passport-config');
 app.use(express.json()); // for JSON requests
 app.use(express.urlencoded({ extended: true })); // for form submissions
 app.use(cookieParser());
-
+passportConfig(app); // for google auth
+// app.set('view engine', 'pug');
 // Common
+
 app.use('/api/v1/users/auth/', userRouter);
 // For Web only
 

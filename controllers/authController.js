@@ -54,7 +54,10 @@ const login = async (req, res, next) => {
       !(await foundedUser.correctPassword(password, foundedUser.password))
     )
       return next(
-        new AppError(`There is no user found with the email of ${email}`, 404)
+        new AppError(
+          `There is no user found with the email of ${email} and password provided`,
+          404
+        )
       );
     // Send the token
     await otpCreationAndSending(req, res, next, foundedUser);
@@ -342,6 +345,11 @@ const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
+const dsh = () => {
+  return res.status(200).json({
+    message: 'Good',
+  });
+};
 module.exports = {
   signup,
   login,
@@ -352,4 +360,5 @@ module.exports = {
   forgetPassword,
   resetPassword,
   refreshToken,
+  dsh,
 };
