@@ -292,11 +292,49 @@ const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-const dsh = () => {
-  return res.status(200).json({
-    message: 'Good',
-  });
+
+const updateMyPassword = async (req, res, next) => {
+  try {
+    const user = req.user; // from protect middleware
+    const { currentPassword, newPassword, passwordConfirm } = req.body;
+
+    // 1) Find the current user
+    const foundedUser = await User.findById(user.id).select('+password');
+    if (!foundedUser) return next(new AppError('User not found', 404));
+
+    // 2) Check current password
+    const isCorrect = await foundedUser.correctPassword(
+      currentPassword,
+      foundedUser.password
+    );
+    if (!isCorrect)
+      return next(new AppError('Your current password is wrong', 401));
+
+    // 3) Update password
+    foundedUser.password = newPassword;
+    foundedUser.passwordConfirm = passwordConfirm;
+
+    // 4) Remove refresh token to force logout on all devices
+    foundedUser.refreshToken = undefined;
+    await foundedUser.save();
+
+    // 5) Clear cookie
+    res.clearCookie('refreshJwtToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+    });
+
+    // 6) Respond
+    res.status(200).json({
+      status: 'success',
+      message: 'Password updated successfully. Please log in again.',
+    });
+  } catch (err) {
+    next(err);
+  }
 };
+
 module.exports = {
   signup,
   login,
@@ -306,5 +344,5 @@ module.exports = {
   forgetPassword,
   resetPassword,
   refreshToken,
-  dsh,
+  updateMyPassword,
 };

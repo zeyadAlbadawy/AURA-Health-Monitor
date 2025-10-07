@@ -17,6 +17,10 @@ userRouter
   .route('/refresh-token')
   .get(protectMiddleware.protect, authController.refreshToken);
 
+userRouter
+  .route('/update-my-password')
+  .post(protectMiddleware.protect, authController.updateMyPassword);
+
 // TESTING GOOGLE LOGIN
 userRouter
   .route('/google')

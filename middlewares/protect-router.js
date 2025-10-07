@@ -1,3 +1,6 @@
+const jwt = require('jsonwebtoken');
+const User = require('../models/userModel');
+const AppError = require('../utils/appError');
 // For the protected Route
 // 1 ) in the login or sign up, we create jwt and send it via respose to the Client
 // 2 ) when we try to access any protected Route, we took this JWT token and pass it to the protect handler middleware
