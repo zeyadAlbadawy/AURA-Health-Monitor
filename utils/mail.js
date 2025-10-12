@@ -1,6 +1,8 @@
 const nodemailer = require('nodemailer');
 const pug = require('pug');
 const path = require('path');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SEND_GRID_API_KEY);
 
 module.exports = class Mail {
   constructor(user) {
@@ -37,7 +39,23 @@ module.exports = class Mail {
       html,
     };
 
-    await this.createTransport().sendMail(mailOptions);
+    const sgMailOptions = {
+      to: this.to,
+      from: {
+        email: process.env.SEND_GRID_MAIL,
+        name: 'AURA Smart watch',
+      },
+      subject,
+      html,
+      text: options.message || '',
+    };
+
+    if (process.env.NODE_ENV === 'development')
+      await this.createTransport().sendMail(
+        mailOptions
+      ); // sendMail is mailtrap method not the function above
+    else if (process.env.NODE_ENV === 'production')
+      await sgMail.send(sgMailOptions);
   }
 
   async sendOTP(otp) {

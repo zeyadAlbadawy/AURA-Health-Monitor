@@ -13,7 +13,7 @@ const otpCreationAndSending = async (req, res, next, user) => {
   const otp = await otpGenerate.otpHashingAndStoringIntoDB(user);
 
   // Mail Sending
-  // await new Mail(user).sendOTP(otp);
+  await new Mail(user).sendOTP(otp);
 
   // Send The Token ===================================
   res.status(201).json({
@@ -35,6 +35,7 @@ const signup = async (req, res, next) => {
       email: bodyInput.email,
       password: bodyInput.password,
       passwordConfirm: bodyInput.passwordConfirm,
+      role: bodyInput.role,
     });
 
     await otpCreationAndSending(req, res, next, user);
@@ -129,19 +130,16 @@ const validateOtp = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      message: {
+      message: 'OTP validated successfully. Please complete your profile.',
+      data: {
         token,
+        // Include a flag or next step instruction for the frontend
+        nextStep: '/complete-profile',
       },
     });
   } catch (err) {
     next(err);
   }
-};
-
-// Test
-const findAllUsers = async (req, res, next) => {
-  // const user = await User.findOne({ email: 'zed@example.com' });
-  console.log('hiiii');
 };
 
 const logout = async (req, res, next) => {
@@ -340,7 +338,6 @@ module.exports = {
   login,
   logout,
   validateOtp,
-  findAllUsers,
   forgetPassword,
   resetPassword,
   refreshToken,
