@@ -13,7 +13,7 @@ const otpCreationAndSending = async (req, res, next, user) => {
   const otp = await otpGenerate.otpHashingAndStoringIntoDB(user);
 
   // Mail Sending
-  await new Mail(user).sendOTP(otp);
+  // await new Mail(user).sendOTP(otp);
 
   // Send The Token ===================================
   res.status(201).json({

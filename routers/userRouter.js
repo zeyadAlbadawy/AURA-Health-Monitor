@@ -1,11 +1,13 @@
 const express = require('express');
 const userRouter = express.Router();
 const passport = require('passport');
-const jwtCreation = require('../utils/createSendJWT');
-const authController = require('../controllers/authController');
+const jwtCreation = require('../utils/createSendJWT.js');
+const authController = require('../controllers/authController.js');
 const protectMiddleware = require('../middlewares/protect-router.js');
 const completeProfile = require('../middlewares/completedProfile.js');
+const doctorPatientController = require('../controllers/doctorPatient.controller.js');
 /////////////// ---------  AUTH  ROUTER ------//////////////////////
+
 userRouter.route('/signup').post(authController.signup);
 userRouter.route('/login').post(authController.login);
 userRouter.route('/validate-otp').post(authController.validateOtp);
@@ -44,6 +46,12 @@ userRouter.get(
 
 // Routers need to be protected and completed profile.
 userRouter.use(protectMiddleware.protect);
+
+userRouter
+  .route('/complete-profile')
+  .post(doctorPatientController.completeProfile);
+
+// These routers must be completed profile
 userRouter.use(completeProfile.checkProfileCompletness);
 userRouter
   .route('/refreshtoken-')
@@ -53,4 +61,17 @@ userRouter
   .route('/update-my-password')
   .post(protectMiddleware.protect, authController.updateMyPassword);
 
+// Check the status of the profile
+// userRouter.route('/check-status').get();
+
 module.exports = userRouter;
+
+// login
+// signup
+// validate-otp
+// logout
+// forget-password, resetpassword
+// google auth
+// complete-profile
+// refreshtoken
+// update-password

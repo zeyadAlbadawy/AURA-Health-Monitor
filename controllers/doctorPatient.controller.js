@@ -13,6 +13,7 @@ const completeProfile = async (req, res, next) => {
       if (existingPatient)
         return next(new AppError('Patient profile already completed.', 400));
 
+      const { gender, age, weight } = bodyInpt;
       if (!gender || !age || !weight)
         return next(
           new AppError(
@@ -36,10 +37,11 @@ const completeProfile = async (req, res, next) => {
       }
 
       // 2. Validate essential Doctor fields
+      console.log(bodyInpt);
       if (
         !bodyInpt.specialization ||
         !bodyInpt.licenseNumber ||
-        !bodyInpt.yearsOfExprience
+        !bodyInpt.yearsOfExperience
       ) {
         return next(
           new AppError(
@@ -55,6 +57,7 @@ const completeProfile = async (req, res, next) => {
         specialization: bodyInpt.specialization,
         licenseNumber: bodyInpt.licenseNumber,
         yearsOfExperience: bodyInpt.yearsOfExperience, // Optional field
+        isCompleted: true,
       });
       req.profileCompleted = true;
     } else {

@@ -1,5 +1,7 @@
 const express = require('express');
 const userRouter = require('./routers/userRouter');
+const adminRouter = require('./routers/adminRouter');
+const doctorRouter = require('./routers/doctorRouter');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const passportConfig = require('./middlewares/google-oauth20');
@@ -14,6 +16,8 @@ passportConfig(app); // for google auth
 // Common
 
 app.use('/api/v1/users/auth/', userRouter);
+app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/doctors', doctorRouter);
 // For Web only
 
 // For mobile only

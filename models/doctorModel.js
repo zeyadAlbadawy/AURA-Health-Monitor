@@ -15,12 +15,21 @@ const DoctorSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Pleas Enter the license number'],
   },
+  // For admin usage
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
 
   yearsOfExperience: {
     type: Number,
     required: [true, 'Please mention the no of years of experience'],
   },
 
+  isApproved: {
+    type: Boolean,
+    default: false, // Admin must manually approve
+  },
   createdAt: {
     type: Date,
     default: new Date(Date.now()),
