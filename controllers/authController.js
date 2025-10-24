@@ -29,13 +29,26 @@ const signup = async (req, res, next) => {
     if (foundedUser)
       return next(new AppError('There is a user with this email', 400));
     // 2) create the new user
+
+    // 2) Allow only "patient" or "doctor"
+    let role = 'patient'; // default
+    if (bodyInput.role === 'doctor') role = 'doctor';
+    else if (bodyInput.role && bodyInput.role !== 'patient') {
+      return next(
+        new AppError(
+          'Invalid role. You can only signup as patient or doctor.',
+          400
+        )
+      );
+    }
+
     const user = await User.create({
       firstName: bodyInput.firstName,
       lastName: bodyInput.lastName,
       email: bodyInput.email,
       password: bodyInput.password,
       passwordConfirm: bodyInput.passwordConfirm,
-      role: bodyInput.role,
+      role,
     });
 
     await otpCreationAndSending(req, res, next, user);
