@@ -41,11 +41,12 @@ const completeProfile = async (req, res, next) => {
       if (
         !bodyInpt.specialization ||
         !bodyInpt.licenseNumber ||
-        !bodyInpt.yearsOfExperience
+        !bodyInpt.yearsOfExperience ||
+        !bodyInpt.priceSession
       ) {
         return next(
           new AppError(
-            'Please provide specialization,  license number and years of experience an to complete your Doctor profile.',
+            'Please provide specialization,  license number , priceSession, and years of experience an to complete your Doctor profile.',
             400
           )
         );
@@ -57,6 +58,7 @@ const completeProfile = async (req, res, next) => {
         specialization: bodyInpt.specialization,
         licenseNumber: bodyInpt.licenseNumber,
         yearsOfExperience: bodyInpt.yearsOfExperience, // Optional field
+        priceSession: bodyInpt.priceSession,
         isCompleted: true,
       });
       req.profileCompleted = true;

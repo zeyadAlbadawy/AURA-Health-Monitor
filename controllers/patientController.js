@@ -64,4 +64,9 @@ const doctorThisPatientAssignedTo = async (req, res, next) => {
     next(err);
   }
 };
+
+// i wanna make booking which allows patient to choose doctor and the status is provided
+// if it is confirmed i will allow the patient to make a payment on the session price
+// after the session has been completed i wanna changed the status to completed
+// then make this doctor no of sessins performed increase by one
 module.exports = { getAllDoctors, getMeInfo };

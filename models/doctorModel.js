@@ -21,6 +21,11 @@ const DoctorSchema = new mongoose.Schema({
     default: false,
   },
 
+  priceSession: {
+    type: Number,
+    required: [true, 'please mention the price of your session'],
+  },
+
   yearsOfExperience: {
     type: Number,
     required: [true, 'Please mention the no of years of experience'],
