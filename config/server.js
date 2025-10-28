@@ -13,6 +13,8 @@ mongoose
   .then(() => console.log(' ✅ DB Connected Successfully!'))
   .catch((err) => console.error(' ❌ DB Connection Error:', err));
 
-const server = app.listen(process.env.PORT, () => {
+const PORT = process.env.PORT || 3000;
+
+const server = app.listen(PORT, () => {
   console.log(`App is Running on Port ${process.env.PORT}`);
 });
