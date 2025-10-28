@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node config/server.js",
     "start:dev": "cross-env NODE_ENV=development nodemon config/server.js",
     "start:prod": "cross-env NODE_ENV=production nodemon config/server.js",
     "watch:js": "parcel watch ./public/js/index.js --dist-dir ./public/js --out-file bundle.js",
