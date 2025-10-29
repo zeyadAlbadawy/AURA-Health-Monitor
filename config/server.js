@@ -14,6 +14,7 @@ mongoose
   .catch((err) => console.error(' ❌ DB Connection Error:', err));
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, '0.0.0.0', () => {
+const HOST = '0.0.0.0';
+const server = app.listen(PORT, HOST, () => {
   console.log(`App is Running on Port ${process.env.PORT}`);
 });
