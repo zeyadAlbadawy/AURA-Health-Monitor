@@ -25,6 +25,7 @@ app.use('/api/v1/patients', patientRouter);
 // For mobile only
 
 // For not found routers
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
 
 app.all('/{*any}', (req, res, next) => {
   next(
