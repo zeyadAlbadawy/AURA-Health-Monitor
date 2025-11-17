@@ -14,6 +14,8 @@ patientRouter.use(restriction.restrictTo('patient'));
 patientRouter.use(completeProfile.checkProfileCompletness); // does not work without protect middleware
 
 patientRouter.route('/available-doctors').get(patientController.getAllDoctors);
-
+patientRouter
+  .route('/book-with-doctor/:id')
+  .post(patientController.bookWithDoctor);
 patientRouter.route('/about-me').get(patientController.getMeInfo);
 module.exports = patientRouter;
