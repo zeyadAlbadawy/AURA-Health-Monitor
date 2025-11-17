@@ -37,7 +37,6 @@ const completeProfile = async (req, res, next) => {
       }
 
       // 2. Validate essential Doctor fields
-      console.log(bodyInpt);
       if (
         !bodyInpt.specialization ||
         !bodyInpt.licenseNumber ||

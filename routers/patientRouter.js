@@ -11,14 +11,9 @@ const patientController = require('../controllers/patientController.js');
 // Must be logged in and this is belongs to patint only
 patientRouter.use(protectMiddleware.protect);
 patientRouter.use(restriction.restrictTo('patient'));
-patientRouter
-  .route('/available-doctors')
-  .get(
-    completeProfile.checkProfileCompletness,
-    patientController.getAllDoctors
-  );
+patientRouter.use(completeProfile.checkProfileCompletness); // does not work without protect middleware
 
-patientRouter
-  .route('/about-me')
-  .get(completeProfile.checkProfileCompletness, patientController.getMeInfo);
+patientRouter.route('/available-doctors').get(patientController.getAllDoctors);
+
+patientRouter.route('/about-me').get(patientController.getMeInfo);
 module.exports = patientRouter;

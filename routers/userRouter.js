@@ -49,12 +49,12 @@ userRouter.use(protectMiddleware.protect);
 
 userRouter
   .route('/complete-profile')
-  .post(doctorPatientController.completeProfile);
+  .post(doctorPatientController.completeProfile); // must be authenticated
 
 // These routers must be completed profile
 userRouter.use(completeProfile.checkProfileCompletness);
 userRouter
-  .route('/refreshtoken-')
+  .route('/refreshtoken')
   .get(protectMiddleware.protect, authController.refreshToken);
 
 userRouter

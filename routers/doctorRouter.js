@@ -8,6 +8,7 @@ const restriction = require('../middlewares/checkAdmin.js');
 const completeProfile = require('../middlewares/completedProfile.js');
 const patientController = require('../controllers/patientController.js');
 const doctorController = require('../controllers/doctorController.js');
+
 doctorRouter.use(protectMiddleware.protect);
 doctorRouter.use(restriction.restrictTo('doctor'));
 
