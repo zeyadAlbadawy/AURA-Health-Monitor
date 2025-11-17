@@ -2,14 +2,32 @@ const Doctor = require('../models/doctorModel');
 const Patient = require('../models/patientModel');
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
+const Booking = require('../models/bookingModel');
 // all the doctors assinged to patient and not assigned to patient
 const getAllDoctors = async (req, res, next) => {
   try {
-    const doctors = await Doctor.find({ isApproved: true }).populate('userId');
+    let doctors = await Doctor.find({ isApproved: true }).populate({
+      path: 'userId',
+      select: '_id firstName lastName email',
+    });
+    const formattedAvailableDoctors = [];
+    doctors.forEach((doctor) => {
+      formattedAvailableDoctors.push({
+        doctorId: doctor._id,
+        firstName: doctor.userId.firstName,
+        lastName: doctor.userId.lastName,
+        email: doctor.userId.email,
+        specialization: doctor.specialization,
+        licenseNumber: doctor.licenseNumber,
+        priceSession: doctor.priceSession,
+        yearsOfExperience: doctor.yearsOfExperience,
+      });
+    });
+
     res.status(200).json({
       status: 'success',
       message: 'Doctors profiles retrieved successfully.',
-      data: doctors,
+      data: formattedAvailableDoctors,
     });
   } catch (err) {
     next(err);
@@ -65,8 +83,78 @@ const doctorThisPatientAssignedTo = async (req, res, next) => {
   }
 };
 
+const bookWithDoctor = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+    const doctorId = req.params.id; // the doctor which this patient try to book with
+    const patientDocument = await Patient.findOne({ userId });
+
+    const patientId = patientDocument ? patientDocument._id : null;
+    if (!patientId || !doctorId)
+      return next(
+        new AppError(
+          `Thjere is a problem with the booking you are trying to made, try again later! `,
+          400
+        )
+      );
+
+    // search if there is any booking that is not completed yet, simply return an error
+    // search if the time is in the future or not
+    const { time, notes } = req.body;
+    if (!time || !notes)
+      return next(new AppError('Booking time and notes is required.', 400));
+
+    // 1. Check if the input is a string (like the ISO format)
+    if (typeof time === 'string') {
+      dateObject = new Date(time);
+    }
+    // 2. Otherwise, treat it as a number (like the Unix timestamp)
+    else if (typeof time === 'number') {
+      // The number 1763411263 is 10 digits, indicating seconds.
+      // We convert it to milliseconds for the JavaScript Date object.
+      finalTimestamp = time.toString().length === 10 ? time * 1000 : time;
+      dateObject = new Date(finalTimestamp);
+    } else {
+      // Catches null, undefined, or other non-string/non-number types
+      return next(
+        new AppError(
+          'Invalid time format. Time must be a date string or a number.',
+          400
+        )
+      );
+    }
+
+    // 3. Final Validation Check
+    // The getTime() method returns NaN for an "Invalid Date" object.
+    if (isNaN(dateObject.getTime())) {
+      return next(
+        new AppError(
+          'Invalid booking time provided. Please use a valid timestamp or ISO date string.',
+          400
+        )
+      );
+    }
+
+    // 4. Use the valid Date object to get the milliseconds timestamp
+    finalTimestamp = dateObject.getTime();
+    const bookingCreated = await Booking.create({
+      patientId,
+      doctorId,
+      time: finalTimestamp,
+      notes,
+    });
+    res.status(200).json({
+      status: 'success',
+      message: 'booking the doctor is succeed',
+      data: bookingCreated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // i wanna make booking which allows patient to choose doctor and the status is provided
 // if it is confirmed i will allow the patient to make a payment on the session price
 // after the session has been completed i wanna changed the status to completed
 // then make this doctor no of sessins performed increase by one
-module.exports = { getAllDoctors, getMeInfo };
+module.exports = { getAllDoctors, getMeInfo, bookWithDoctor };

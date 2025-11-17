@@ -4,7 +4,7 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const getMeInfo = async (req, res, next) => {
   try {
-    // Get user id from protect middleware
+    // Get user id from protect middleware AS the user which is doctor is authenticated
     const userId = req.user.id;
 
     // Find patient linked to that user
@@ -12,6 +12,8 @@ const getMeInfo = async (req, res, next) => {
       path: 'userId',
       select: 'firstName lastName email photoUrl role',
     });
+
+    console.log(doctor);
 
     if (!doctor) {
       return next(
