@@ -12,5 +12,9 @@ const doctorController = require('../controllers/doctorController.js');
 doctorRouter.use(protectMiddleware.protect);
 doctorRouter.use(restriction.restrictTo('doctor'));
 doctorRouter.use(completeProfile.checkProfileCompletness);
+
 doctorRouter.route('/about-me').get(doctorController.getMeInfo);
+doctorRouter
+  .route('/patients-requests')
+  .get(doctorController.patientsRequestsWithMe);
 module.exports = doctorRouter;

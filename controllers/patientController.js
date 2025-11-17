@@ -104,6 +104,19 @@ const bookWithDoctor = async (req, res, next) => {
     if (!time || !notes)
       return next(new AppError('Booking time and notes is required.', 400));
 
+    const existingBookingNotApproved = await Booking.findOne({
+      patientId,
+      doctorId,
+      status: 'pending',
+    });
+
+    if (existingBookingNotApproved)
+      return next(
+        new AppError(
+          `There is a Booking with this doctor waiting approval!`,
+          400
+        )
+      );
     // 1. Check if the input is a string (like the ISO format)
     if (typeof time === 'string') {
       dateObject = new Date(time);
@@ -137,6 +150,7 @@ const bookWithDoctor = async (req, res, next) => {
 
     // 4. Use the valid Date object to get the milliseconds timestamp
     finalTimestamp = dateObject.getTime();
+
     const bookingCreated = await Booking.create({
       patientId,
       doctorId,
