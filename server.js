@@ -1,20 +1,17 @@
 const dotenv = require('dotenv');
-const mongoose = require('mongoose');
 dotenv.config({ path: './config.env' });
-const app = require('./app.js');
 
-const DB = process.env.DATABASE_URL.replace(
-  '<db_password>',
-  process.env.DATABASE_PASSWORD
-);
+const app = require('./app');
+const connectDB = require('./utils/db');
 
-mongoose
-  .connect(DB)
-  .then(() => console.log(' ✅ DB Connected Successfully!'))
-  .catch((err) => console.error(' ❌ DB Connection Error:', err));
+// LOCAL ONLY — connect and start server
+(async () => {
+  await connectDB();
 
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0';
-const server = app.listen(PORT, HOST, () => {
-  console.log(`App is Running on Port ${PORT}`);
-});
+  const PORT = process.env.PORT || 3000;
+  const HOST = '0.0.0.0';
+
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 Local server running on port ${PORT}`);
+  });
+})();
