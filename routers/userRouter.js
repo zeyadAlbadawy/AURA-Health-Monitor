@@ -61,6 +61,13 @@ userRouter
   .route('/update-my-password')
   .post(protectMiddleware.protect, authController.updateMyPassword);
 
+userRouter.route('/getMeee').get((req, res) => {
+  res.send({
+    status: 'Success',
+    message: 'Have a good day',
+  });
+});
+
 // Check the status of the profile
 // userRouter.route('/check-status').get();
 
