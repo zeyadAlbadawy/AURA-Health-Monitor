@@ -8,6 +8,12 @@ const completeProfile = require('../middlewares/completedProfile.js');
 const doctorPatientController = require('../controllers/doctorPatient.controller.js');
 /////////////// ---------  AUTH  ROUTER ------//////////////////////
 
+userRouter.route('/getMeee').get((req, res) => {
+  res.send({
+    status: 'Success',
+    message: 'Have a good day',
+  });
+});
 userRouter.route('/signup').post(authController.signup);
 userRouter.route('/login').post(authController.login);
 userRouter.route('/validate-otp').post(authController.validateOtp);
@@ -60,13 +66,6 @@ userRouter
 userRouter
   .route('/update-my-password')
   .post(protectMiddleware.protect, authController.updateMyPassword);
-
-userRouter.route('/getMeee').get((req, res) => {
-  res.send({
-    status: 'Success',
-    message: 'Have a good day',
-  });
-});
 
 // Check the status of the profile
 // userRouter.route('/check-status').get();
