@@ -1,17 +1,20 @@
-// server.js
 const dotenv = require('dotenv');
-dotenv.config({ path: './config.env' }); // load env for local
-const app = require('./app');
-const connectDB = require('./utils/db');
+const mongoose = require('mongoose');
+dotenv.config({ path: './config.env' });
+const app = require('./app.js');
+
+const DB = process.env.DATABASE_URL.replace(
+  '<db_password>',
+  process.env.DATABASE_PASSWORD
+);
+
+mongoose
+  .connect(DB)
+  .then(() => console.log(' ✅ DB Connected Successfully!'))
+  .catch((err) => console.error(' ❌ DB Connection Error:', err));
 
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
-
-const startServer = async () => {
-  await connectDB(); // connect to MongoDB
-  app.listen(PORT, HOST, () => {
-    console.log(`App running locally at http://${HOST}:${PORT}`);
-  });
-};
-
-startServer();
+const server = app.listen(PORT, HOST, () => {
+  console.log(`App is Running on Port ${PORT}`);
+});
