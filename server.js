@@ -1,17 +1,17 @@
+// server.js
 const dotenv = require('dotenv');
-dotenv.config({ path: './config.env' });
-
+dotenv.config({ path: './config.env' }); // load env for local
 const app = require('./app');
 const connectDB = require('./utils/db');
 
-// LOCAL ONLY — connect and start server
-(async () => {
-  await connectDB();
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
 
-  const PORT = process.env.PORT || 3000;
-  const HOST = '0.0.0.0';
-
+const startServer = async () => {
+  await connectDB(); // connect to MongoDB
   app.listen(PORT, HOST, () => {
-    console.log(`🚀 Local server running on port ${PORT}`);
+    console.log(`App running locally at http://${HOST}:${PORT}`);
   });
-})();
+};
+
+startServer();

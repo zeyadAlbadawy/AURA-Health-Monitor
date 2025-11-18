@@ -1,21 +1,29 @@
+// utils/db.js
 const mongoose = require('mongoose');
+require('dotenv').config(); // loads .env locally
 
-let isConnected = false;
+const DB = process.env.DATABASE_URL?.replace(
+  '<db_password>',
+  process.env.DATABASE_PASSWORD
+);
 
-async function connectDB() {
-  if (isConnected) {
-    return;
-  }
-
-  const DB = process.env.DATABASE_URL.replace(
-    '<db_password>',
-    process.env.DATABASE_PASSWORD
+if (!DB) {
+  throw new Error(
+    'MongoDB connection string is missing! Check your environment variables.'
   );
-
-  const conn = await mongoose.connect(DB);
-  isConnected = conn.connections[0].readyState === 1;
-
-  console.log('⚡ MongoDB Connected');
 }
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(DB, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('✅ DB Connected Successfully!');
+  } catch (err) {
+    console.error('❌ DB Connection Error:', err);
+    process.exit(1); // exit process if DB fails
+  }
+};
 
 module.exports = connectDB;
