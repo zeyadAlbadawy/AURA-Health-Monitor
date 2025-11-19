@@ -204,15 +204,12 @@ const cancelBooking = async (req, res, next) => {
     if (!bookingId)
       return next(new AppError(`please provide the booking id`, 400));
 
-    if (foundedBooking.patientId !== patientId)
-      return next(
-        new AppError(`This booking belongs to a different patient`, 401)
-      );
     const foundedBooking = await Booking.findOne({
       _id: bookingId,
       patientId,
       status: 'pending',
     });
+
     if (!foundedBooking)
       return next(
         new AppError(
