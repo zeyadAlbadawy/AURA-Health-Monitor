@@ -3,6 +3,7 @@ const Patient = require('../models/patientModel');
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const Booking = require('../models/bookingModel');
+const validateTimeStamp = require('../utils/timeStampValidate.js');
 // all the doctors assinged to patient and not assigned to patient
 const getAllDoctors = async (req, res, next) => {
   try {
@@ -104,39 +105,20 @@ const bookWithDoctor = async (req, res, next) => {
     if (!time || !notes)
       return next(new AppError('Booking time and notes is required.', 400));
 
-    // 1. Check if the input is a string (like the ISO format)
-    if (typeof time === 'string') {
-      dateObject = new Date(time);
-    }
-    // 2. Otherwise, treat it as a number (like the Unix timestamp)
-    else if (typeof time === 'number') {
-      // The number 1763411263 is 10 digits, indicating seconds.
-      // We convert it to milliseconds for the JavaScript Date object.
-      finalTimestamp = time.toString().length === 10 ? time * 1000 : time;
-      dateObject = new Date(finalTimestamp);
-    } else {
-      // Catches null, undefined, or other non-string/non-number types
+    const existingBookingNotApproved = await Booking.findOne({
+      patientId,
+      doctorId,
+      status: 'pending',
+    });
+
+    if (existingBookingNotApproved)
       return next(
         new AppError(
-          'Invalid time format. Time must be a date string or a number.',
+          `There is a Booking with this doctor waiting approval!`,
           400
         )
       );
-    }
-
-    // 3. Final Validation Check
-    // The getTime() method returns NaN for an "Invalid Date" object.
-    if (isNaN(dateObject.getTime())) {
-      return next(
-        new AppError(
-          'Invalid booking time provided. Please use a valid timestamp or ISO date string.',
-          400
-        )
-      );
-    }
-
-    // 4. Use the valid Date object to get the milliseconds timestamp
-    finalTimestamp = dateObject.getTime();
+    const finalTimestamp = validateTimeStamp.validateTime(time, next);
     const bookingCreated = await Booking.create({
       patientId,
       doctorId,
@@ -153,8 +135,150 @@ const bookWithDoctor = async (req, res, next) => {
   }
 };
 
+// get all my booking history
+const myBookings = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    if (!patientId)
+      return next(
+        new AppError(`There is an error while retriving the data`, 400)
+      );
+    const foundedBookings = await Booking.find({ patientId });
+    res.status(200).json({
+      status: 'success',
+      length: foundedBookings.length,
+      data: foundedBookings,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// get the booking detail by its id
+const myBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    const bookingId = req.params.id;
+
+    if (foundedBooking.patientId !== patientId)
+      return next(
+        new AppError(`This booking belongs to a different patient`, 401)
+      );
+
+    const foundedBooking = await Booking.findOne({
+      _id: bookingId,
+      patientId,
+      status: { $in: ['pending', 'confirmed', 'rejected', 'completed'] },
+    });
+
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `There is no booking with the provided id or it may belongs to another patient`,
+          404
+        )
+      );
+    res.status(200).json({
+      status: 'success',
+      message: `booking with id of ${bookingId} retrieved successfully!`,
+      data: foundedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// cancel specifc booking by
+// cencel booking mean to change its status to cancelled, so when there is any operation within  the booking must filter
+// filter out any booking that has cancelled status
+const cancelBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // from protect middleware
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    const bookingId = req.params.id;
+    if (!bookingId)
+      return next(new AppError(`please provide the booking id`, 400));
+
+    const foundedBooking = await Booking.findOne({
+      _id: bookingId,
+      patientId,
+      status: 'pending',
+    });
+
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `There is no booking with the provided id, enter a valid one`,
+          404
+        )
+      );
+    foundedBooking.status = 'cancelled'; // soft delete instead of deleting the whole document
+    await foundedBooking.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'booking cancelled successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateMyBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    const bookingId = req.params.id;
+    const foundedBooking = await Booking.findOne({
+      _id: bookingId,
+      patientId,
+      status: {
+        $in: ['pending'],
+      },
+    });
+
+    if (!foundedBooking)
+      return next(
+        new AppError(`There is no booking with the provided id`, 404)
+      );
+
+    const updatedDataInput = req.body;
+    if (updatedDataInput.time) {
+      const finalTimestamp = validateTimeStamp.validateTime(
+        updatedDataInput.time,
+        next
+      );
+      foundedBooking.time = finalTimestamp;
+    }
+    if (updatedDataInput.notes) foundedBooking.notes = updatedDataInput.notes;
+    await foundedBooking.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'booking updaeted successfully!',
+      data: foundedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // i wanna make booking which allows patient to choose doctor and the status is provided
 // if it is confirmed i will allow the patient to make a payment on the session price
 // after the session has been completed i wanna changed the status to completed
 // then make this doctor no of sessins performed increase by one
-module.exports = { getAllDoctors, getMeInfo, bookWithDoctor };
+module.exports = {
+  getAllDoctors,
+  cancelBooking,
+  getMeInfo,
+  bookWithDoctor,
+  myBookings,
+  myBooking,
+  updateMyBooking,
+};

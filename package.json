@@ -31,6 +31,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "pug": "^3.0.3",
+    "serverless-http": "^4.0.0",
     "validate": "^5.2.0"
   },
   "devDependencies": {
