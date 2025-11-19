@@ -17,4 +17,12 @@ doctorRouter.route('/about-me').get(doctorController.getMeInfo);
 doctorRouter
   .route('/patients-requests')
   .get(doctorController.patientsRequestsWithMe);
+doctorRouter.route('/patient-booking/:id').get(doctorController.patientBooking);
+doctorRouter
+  .route('/patient-booking/:id/approve')
+  .post(doctorController.approveBooking);
+
+doctorRouter
+  .route('/patient-booking/:id/reject')
+  .post(doctorController.rejectBooking);
 module.exports = doctorRouter;

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const BookingSchema = new mongoose.Schema({
   patientId: {
     type: mongoose.Schema.ObjectId,
-    ref: 'Patinet',
+    ref: 'Patient',
     required: true,
   },
 

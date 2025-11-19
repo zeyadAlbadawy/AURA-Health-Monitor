@@ -3,8 +3,11 @@ const Patient = require('../models/patientModel');
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const Booking = require('../models/bookingModel');
+const bookStatsUpdate = require('../utils/bookingStatsUpdate.js');
 const getMeInfo = async (req, res, next) => {
   try {
+    // helper
+
     // Get user id from protect middleware AS the user which is doctor is authenticated
     const userId = req.user.id;
 
@@ -13,8 +16,6 @@ const getMeInfo = async (req, res, next) => {
       path: 'userId',
       select: 'firstName lastName email photoUrl role',
     });
-
-    console.log(doctor);
 
     if (!doctor) {
       return next(
@@ -48,6 +49,7 @@ const getMeInfo = async (req, res, next) => {
   }
 };
 
+// get all booking requests
 const patientsRequestsWithMe = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -93,4 +95,82 @@ const patientsRequestsWithMe = async (req, res, next) => {
   }
 };
 
-module.exports = { getMeInfo, patientsRequestsWithMe };
+// get the booking by the booking id
+const patientBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const doctor = await Doctor.findOne({ userId });
+    const doctorId = doctor.id;
+    const bookingId = req.params.id;
+    const foundedBooking = await Booking.findOne({ _id: bookingId, doctorId });
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `There is no booking with the provided id, enter a valid one`,
+          404
+        )
+      );
+    res.status(200).json({
+      status: 'success',
+      message: 'booking retrieved successfully',
+      data: foundedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const approveBooking = async (req, res, next) => {
+  try {
+    const statusToFind = ['pending', 'rejected'];
+    const newStatus = 'approved';
+    const updated = await bookStatsUpdate.updateBookingStatus(
+      req,
+      next,
+      statusToFind,
+      newStatus
+    );
+
+    if (!updated) return; // handled by next()
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Booking approved successfully',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const rejectBooking = async (req, res, next) => {
+  try {
+    const statusToFind = ['approved', 'pending'];
+    const newStatus = 'rejected';
+
+    const updated = await bookStatsUpdate.updateBookingStatus(
+      req,
+      next,
+      statusToFind,
+      newStatus
+    );
+
+    if (!updated) return;
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Booking rejected successfully',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  getMeInfo,
+  patientsRequestsWithMe,
+  patientBooking,
+  approveBooking,
+  rejectBooking,
+};
