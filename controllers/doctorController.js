@@ -92,4 +92,5 @@ const patientsRequestsWithMe = async (req, res, next) => {
     next(err);
   }
 };
+
 module.exports = { getMeInfo, patientsRequestsWithMe };
