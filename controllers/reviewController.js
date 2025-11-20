@@ -7,18 +7,18 @@ const Doctor = require('./../models/doctorModel');
 const Patient = require('./../models/patientModel');
 
 exports.createReview = catchAsync(async (req, res, next) => {
-  if (!req.body.doctorId) {
-    req.body.doctorId = req.params.doctorId;
+  if (!req.params.doctorId) {
+    return next(new AppError('Doctor profile not found.', 404));
   }
 
   const patient = await Patient.findOne({ userId: req.user.id });
+
   if (!patient) {
     return next(new AppError('Patient profile not found.', 404));
   }
 
-  req.body.patientId = patient._id;
+  const doctor = await Doctor.findById(req.params.doctorId);
 
-  const doctor = await Doctor.findById(req.body.doctorId);
   if (!doctor) {
     return next(new AppError('Doctor not found. Invalid doctor ID.', 404));
   }
@@ -26,27 +26,24 @@ exports.createReview = catchAsync(async (req, res, next) => {
   const reviewData = {
     review: req.body.review,
     rating: req.body.rating,
-    doctorId: req.body.doctorId,
+    doctorId: req.params.doctorId,
     patientId: patient._id,
   };
 
   const newReview = await Review.create(reviewData);
 
-  const populated = await Review.findById(newReview._id)
-    .populate({
+  await newReview.populate([
+    {
       path: 'doctorId',
-      populate: {
-        path: 'userId',
-        select: 'firstName lastName',
-      },
-    })
-    .populate({
+      populate: { path: 'userId', select: 'firstName lastName' },
+    },
+    {
       path: 'patientId',
-      populate: {
-        path: 'userId',
-        select: 'firstName lastName',
-      },
-    });
+      populate: { path: 'userId', select: 'firstName lastName' },
+    },
+  ]);
+
+  const populated = newReview;
 
   const formatted = {
     id: populated._id,
@@ -192,53 +189,53 @@ exports.updateReview = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid review ID format', 400));
   }
 
-  const review = await Review.findById(req.params.id);
+  const [review, patient] = await Promise.all([
+    Review.findById(req.params.id),
+    Patient.findOne({ userId: req.user.id }),
+  ]);
 
   if (!review) {
     return next(new AppError('No review found with this Id', 404));
   }
 
-  const writtenBy = review.patientId;
+  if (!patient) {
+    return next(new AppError('Patient not found', 404));
+  }
 
-  const patient = await Patient.findOne({ userId: req.user.id });
-
-  if (!writtenBy.equals(patient._id)) {
+  if (!review.patientId.equals(patient._id)) {
     return next(new AppError('You can only edit a review you wrote', 403));
   }
 
-  const reviewData = {
-    review: req.body.review,
-    rating: req.body.rating,
-  };
+  if (req.body.rating !== undefined) {
+    review.rating = req.body.rating;
+  }
 
-  const newReview = await Review.findByIdAndUpdate(req.params.id, reviewData, {
-    new: true,
-    runValidators: true,
-  })
-    .populate({
+  if (req.body.review !== undefined) {
+    review.review = req.body.review;
+  }
+
+  const updatedReview = await review.save();
+
+  await updatedReview.populate([
+    {
       path: 'doctorId',
-      populate: {
-        path: 'userId',
-        select: 'firstName lastName',
-      },
-    })
-    .populate({
+      populate: { path: 'userId', select: 'firstName lastName' },
+    },
+    {
       path: 'patientId',
-      populate: {
-        path: 'userId',
-        select: 'firstName lastName',
-      },
-    });
+      populate: { path: 'userId', select: 'firstName lastName' },
+    },
+  ]);
 
   const formatted = {
-    id: newReview._id,
-    review: newReview.review,
-    rating: newReview.rating,
-    doctorName: `${newReview.doctorId.userId.firstName} ${newReview.doctorId.userId.lastName}`,
-    doctorId: newReview.doctorId._id,
-    patientName: `${newReview.patientId.userId.firstName} ${newReview.patientId.userId.lastName}`,
-    patientId: newReview.patientId._id,
-    createdAt: newReview.createdAt,
+    id: updatedReview._id,
+    review: updatedReview.review,
+    rating: updatedReview.rating,
+    doctorName: `${updatedReview.doctorId.userId.firstName} ${updatedReview.doctorId.userId.lastName}`,
+    doctorId: updatedReview.doctorId._id,
+    patientName: `${updatedReview.patientId.userId.firstName} ${updatedReview.patientId.userId.lastName}`,
+    patientId: updatedReview.patientId._id,
+    createdAt: updatedReview.createdAt,
   };
 
   res.status(200).json({
