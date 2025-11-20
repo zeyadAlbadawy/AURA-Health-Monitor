@@ -21,7 +21,7 @@ app.use('/api/v1/users/auth/', userRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/doctors', doctorRouter);
 app.use('/api/v1/patients', patientRouter);
-app.use('/api/v1/reviews', patientRouter);
+app.use('/api/v1/reviews', reviewRouter);
 // For Web only
 
 // For mobile only
