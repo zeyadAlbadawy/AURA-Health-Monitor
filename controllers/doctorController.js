@@ -11,17 +11,37 @@ const getMeInfo = async (req, res, next) => {
     // Get user id from protect middleware AS the user which is doctor is authenticated
     const userId = req.user.id;
 
-    // Find patient linked to that user
-    const doctor = await Doctor.findOne({ userId }).populate({
-      path: 'userId',
-      select: 'firstName lastName email photoUrl role',
-    });
+    // Find Doctor linked to that user
+    const doctor = await Doctor.findOne({ userId })
+      .populate({
+        path: 'userId',
+        select: 'firstName lastName email photoUrl role',
+      })
+      .populate({
+        path: 'reviews',
+        populate: {
+          path: 'patientId',
+          populate: {
+            path: 'userId',
+            select: 'firstName lastName',
+          },
+        },
+      });
 
     if (!doctor) {
       return next(
         new AppError(`No doctor profile found for user ID: ${userId}`, 404)
       );
     }
+
+    // Format the reviews before sending them in the response
+
+    const formattedReviews = doctor.reviews.map((r) => ({
+      id: r._id,
+      review: r.review,
+      rating: r.rating,
+      patientName: `${r.patientId.userId.firstName} ${r.patientId.userId.lastName}`,
+    }));
 
     // Build clean response
     const formattedData = {
@@ -35,13 +55,15 @@ const getMeInfo = async (req, res, next) => {
       yearsOfExperience: doctor.yearsOfExperience,
       priceSession: doctor.priceSession,
       photoUrl: doctor.userId.photoUrl || null,
+      reviewsNumber: formattedReviews.length,
+      reviews: formattedReviews,
       createdAt: doctor.createdAt,
       updatedAt: doctor.updatedAt,
     };
 
     res.status(200).json({
       status: 'success',
-      message: 'Patient profile retrieved successfully.',
+      message: 'Doctor profile retrieved successfully.',
       data: formattedData,
     });
   } catch (err) {
