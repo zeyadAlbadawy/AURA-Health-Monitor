@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const Review = require('./reviewModel');
 
 const DoctorSchema = new mongoose.Schema(
   {
@@ -32,6 +31,19 @@ const DoctorSchema = new mongoose.Schema(
     yearsOfExperience: {
       type: Number,
       required: [true, 'Please mention the no of years of experience'],
+    },
+
+    ratingsQuantity: {
+      type: Number,
+      default: 0,
+    },
+
+    ratingsAverage: {
+      type: Number,
+      default: 3.5,
+      min: [1, 'Rating must be above 1.0'],
+      max: [5, 'Rating must be below 5.0'],
+      set: (val) => Math.round(val * 10) / 10,
     },
 
     isApproved: {

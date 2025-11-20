@@ -11,7 +11,7 @@ const getMeInfo = async (req, res, next) => {
     // Get user id from protect middleware AS the user which is doctor is authenticated
     const userId = req.user.id;
 
-    // Find Doctor linked to that user
+    // Find Doctor linked to that user and populate the data from user and populate reviews
     const doctor = await Doctor.findOne({ userId })
       .populate({
         path: 'userId',
@@ -55,7 +55,8 @@ const getMeInfo = async (req, res, next) => {
       yearsOfExperience: doctor.yearsOfExperience,
       priceSession: doctor.priceSession,
       photoUrl: doctor.userId.photoUrl || null,
-      reviewsNumber: formattedReviews.length,
+      ratingsQuantity: doctor.ratingsQuantity,
+      ratingsAverage: doctor.ratingsAverage,
       reviews: formattedReviews,
       createdAt: doctor.createdAt,
       updatedAt: doctor.updatedAt,

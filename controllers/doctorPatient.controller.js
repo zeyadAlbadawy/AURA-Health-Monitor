@@ -58,6 +58,8 @@ const completeProfile = async (req, res, next) => {
         licenseNumber: bodyInpt.licenseNumber,
         yearsOfExperience: bodyInpt.yearsOfExperience, // Optional field
         priceSession: bodyInpt.priceSession,
+        ratingsQuantity: bodyInpt.ratingsQuantity,
+        ratingsAverage: bodyInpt.ratingsAverage,
         isCompleted: true,
       });
       req.profileCompleted = true;

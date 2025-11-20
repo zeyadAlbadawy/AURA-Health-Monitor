@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Doctor = require('./doctorModel');
-const Patient = require('./patientModel');
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -34,7 +33,7 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// reviewSchema.index({ doctor: 1, patient: 1 }, { unique: true });
+// reviewSchema.index({ doctorId: 1, patientId: 1 }, { unique: true });
 
 // this index is to make sure each patient can write only one review for a certain dr after the appointment
 
@@ -60,6 +59,47 @@ const reviewSchema = new mongoose.Schema(
 //   });
 //   next();
 // });
+
+//use a static method to calculate average and total ratings each time a new review is added or deleted or updated
+
+reviewSchema.statics.calcAverageRatings = async function (doctorId) {
+  const stats = await this.aggregate([
+    {
+      $match: { doctorId },
+    },
+    {
+      $group: {
+        _id: '$doctorId',
+        nRating: { $sum: 1 },
+        avgRating: { $avg: '$rating' },
+      },
+    },
+  ]);
+  if (stats.length > 0) {
+    await Doctor.findByIdAndUpdate(doctorId, {
+      ratingsQuantity: stats[0].nRating,
+      ratingsAverage: stats[0].avgRating,
+    });
+  } else {
+    await Doctor.findByIdAndUpdate(doctorId, {
+      ratingsQuantity: 0,
+      ratingsAverage: 4.5,
+    });
+  }
+};
+
+reviewSchema.post('save', function () {
+  this.constructor.calcAverageRatings(this.doctorId);
+});
+
+reviewSchema.pre(/^findOneAnd/, async function (next) {
+  this.r = await this.model.findOne(this.getQuery());
+  next();
+});
+
+reviewSchema.post(/^findOneAnd/, async function () {
+  await this.r.constructor.calcAverageRatings(this.r.doctorId);
+});
 
 const Review = mongoose.model('Review', reviewSchema);
 
