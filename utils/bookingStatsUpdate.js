@@ -1,5 +1,7 @@
 const Doctor = require('../models/doctorModel');
 const Booking = require('../models/bookingModel');
+const AppError = require('./appError.js');
+
 const updateBookingStatus = async (req, next, statusToFind, newStatus) => {
   const userId = req.user.id;
   const doctor = await Doctor.findOne({ userId });

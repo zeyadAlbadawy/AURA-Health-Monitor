@@ -9,7 +9,6 @@ const restriction = require('./../middlewares/checkAdmin');
 const router = express.Router({ mergeParams: true });
 
 router.use(protectMiddleware.protect);
-
 router
   .route('/')
   .get(reviewController.getAllReviews)

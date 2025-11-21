@@ -4,7 +4,10 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const Booking = require('../models/bookingModel');
 const validateTimeStamp = require('../utils/timeStampValidate.js');
+const mongoose = require('mongoose');
+const Slot = require('../models/slotModel.js');
 // all the doctors assinged to patient and not assigned to patient
+
 const getAllDoctors = async (req, res, next) => {
   try {
     let doctors = await Doctor.find({ isApproved: true }).populate({
@@ -22,6 +25,8 @@ const getAllDoctors = async (req, res, next) => {
         licenseNumber: doctor.licenseNumber,
         priceSession: doctor.priceSession,
         yearsOfExperience: doctor.yearsOfExperience,
+        ratingsAverage: doctor.ratingsAverage,
+        ratingsQuantity: doctor.ratingsQuantity,
       });
     });
 
@@ -76,9 +81,131 @@ const getMeInfo = async (req, res, next) => {
   }
 };
 
-// get the doctor that this patient assigned to
-const doctorThisPatientAssignedTo = async (req, res, next) => {
+const requestSlotWithDoctor = async (req, res, next) => {
   try {
+    const userId = req.user.id; // from protect middleware
+    const patient = await Patient.findOne({ userId });
+    const patientId = patient.id;
+    const { doctorId, slotId } = req.params;
+    const { notes } = req.body;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(slotId) ||
+      !mongoose.Types.ObjectId.isValid(doctorId)
+    )
+      return next(new AppError('Invalid ID format', 400));
+
+    // Check if the user provide slotid and doctorID
+    if (!doctorId || !slotId)
+      return next(new AppError(`Invalid slotId and doctorId passed`, 400));
+
+    // check if this slot is owned for this doctor
+    const foundedSlot = await Slot.findOne({
+      _id: slotId,
+      doctorId,
+    });
+
+    if (!foundedSlot)
+      return next(new AppError('Slot does not exist for this doctor', 404));
+
+    if (foundedSlot.isBooked)
+      return next(new AppError('Slot already booked', 400));
+
+    const newCreatedBooking = await Booking.create({
+      doctorId,
+      patientId,
+      slotId,
+      notes,
+    });
+
+    res.status(201).json({
+      status: 'succes',
+      message: 'booking request is waiting approval',
+      data: newCreatedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// get all my booking history
+const myBookings = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    if (!patientId)
+      return next(
+        new AppError(`There is an error while retriving the data`, 400)
+      );
+    const foundedBookings = await Booking.find({ patientId }).populate({
+      path: 'doctorId',
+      populate: {
+        path: 'userId',
+        select: '_id firstName lastName email specialization ',
+      },
+      select: 'specialization licenseNumber yearsOfExperience priceSession',
+    });
+
+    const formattedBooking = foundedBookings.map((booking) => ({
+      bookingId: booking._id,
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status,
+
+      doctor: {
+        doctorId: booking.doctorId._id,
+        firstName: booking.doctorId?.userId?.firstName,
+        lastName: booking.doctorId?.userId?.lastName,
+        email: booking.doctorId?.userId?.email,
+        specialization: booking.doctorId?.specialization,
+        licenseNumber: booking.doctorId?.licenseNumber,
+        yearsOfExperience: booking.doctorId?.yearsOfExperience,
+        priceSession: booking.doctorId?.priceSession,
+      },
+    }));
+
+    res.status(200).json({
+      status: 'success',
+      length: foundedBookings.length,
+      data: formattedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// get the booking detail by its id
+const myBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+    const patientDocument = await Patient.findOne({ userId });
+    const patientId = patientDocument.id;
+    const bookingId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(bookingId))
+      return next(new AppError('Invalid review ID format', 400));
+
+    const foundedBooking = await Booking.findOne({
+      _id: bookingId,
+      patientId,
+      status: {
+        $in: ['pending', 'confirmed', 'rejected', 'completed', 'approved'],
+      },
+    });
+
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `There is no booking with the provided id or it may belongs to another patient`,
+          404
+        )
+      );
+    res.status(200).json({
+      status: 'success',
+      message: `booking with id of ${bookingId} retrieved successfully!`,
+      data: foundedBooking,
+    });
   } catch (err) {
     next(err);
   }
@@ -129,63 +256,6 @@ const bookWithDoctor = async (req, res, next) => {
       status: 'success',
       message: 'booking the doctor is succeed',
       data: bookingCreated,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// get all my booking history
-const myBookings = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
-    const patientDocument = await Patient.findOne({ userId });
-    const patientId = patientDocument.id;
-    if (!patientId)
-      return next(
-        new AppError(`There is an error while retriving the data`, 400)
-      );
-    const foundedBookings = await Booking.find({ patientId });
-    res.status(200).json({
-      status: 'success',
-      length: foundedBookings.length,
-      data: foundedBookings,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// get the booking detail by its id
-const myBooking = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
-    const patientDocument = await Patient.findOne({ userId });
-    const patientId = patientDocument.id;
-    const bookingId = req.params.id;
-
-    if (foundedBooking.patientId !== patientId)
-      return next(
-        new AppError(`This booking belongs to a different patient`, 401)
-      );
-
-    const foundedBooking = await Booking.findOne({
-      _id: bookingId,
-      patientId,
-      status: { $in: ['pending', 'confirmed', 'rejected', 'completed'] },
-    });
-
-    if (!foundedBooking)
-      return next(
-        new AppError(
-          `There is no booking with the provided id or it may belongs to another patient`,
-          404
-        )
-      );
-    res.status(200).json({
-      status: 'success',
-      message: `booking with id of ${bookingId} retrieved successfully!`,
-      data: foundedBooking,
     });
   } catch (err) {
     next(err);
@@ -275,6 +345,7 @@ const updateMyBooking = async (req, res, next) => {
 // then make this doctor no of sessins performed increase by one
 module.exports = {
   getAllDoctors,
+  requestSlotWithDoctor,
   cancelBooking,
   getMeInfo,
   bookWithDoctor,

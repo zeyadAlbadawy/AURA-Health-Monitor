@@ -12,22 +12,34 @@ const BookingSchema = new mongoose.Schema({
     required: true,
   },
 
-  time: {
-    type: Date,
-    required: [true, 'please enter the time of the booking session'],
+  slotId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Slot',
+    required: true,
+  },
+
+  paymentInfo: {
+    paymentId: String,
+    amount: Number,
+    method: String,
+    paidAt: Date,
   },
 
   notes: {
     type: String,
-    required: [
-      true,
-      'please provide additional info to help the doctor prepare for the session!',
-    ],
+    required: [true, 'please provide any additional info for session booking'],
   },
 
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled', 'rejected', 'completed'],
+    enum: [
+      'pending', // patient requested slot → waiting doctor's approval
+      'approved', // doctor approved → patient must pay
+      'confirmed', // payment done
+      'cancelled',
+      'rejected',
+      'completed',
+    ],
     default: 'pending',
   },
 
