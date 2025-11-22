@@ -156,8 +156,7 @@ const myBookings = async (req, res, next) => {
 
       doctor: {
         doctorId: booking.doctorId._id,
-        firstName: booking.doctorId?.userId?.firstName,
-        lastName: booking.doctorId?.userId?.lastName,
+        fullNamee: `${booking.doctorId?.userId?.firstName} ${booking.doctorId?.userId?.lastName}`,
         email: booking.doctorId?.userId?.email,
         specialization: booking.doctorId?.specialization,
         licenseNumber: booking.doctorId?.licenseNumber,
@@ -211,61 +210,61 @@ const myBooking = async (req, res, next) => {
   }
 };
 
-const bookWithDoctor = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
-    const doctorId = req.params.id; // the doctor which this patient try to book with
-    const patientDocument = await Patient.findOne({ userId });
+// const bookWithDoctor = async (req, res, next) => {
+//   try {
+//     const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+//     const doctorId = req.params.id; // the doctor which this patient try to book with
+//     const patientDocument = await Patient.findOne({ userId });
 
-    const patientId = patientDocument ? patientDocument._id : null;
-    if (!patientId || !doctorId)
-      return next(
-        new AppError(
-          `Thjere is a problem with the booking you are trying to made, try again later! `,
-          400
-        )
-      );
+//     const patientId = patientDocument ? patientDocument._id : null;
+//     if (!patientId || !doctorId)
+//       return next(
+//         new AppError(
+//           `Thjere is a problem with the booking you are trying to made, try again later! `,
+//           400
+//         )
+//       );
 
-    // search if there is any booking that is not completed yet, simply return an error
-    // search if the time is in the future or not
-    const { time, notes } = req.body;
-    if (!time || !notes)
-      return next(new AppError('Booking time and notes is required.', 400));
+//     // search if there is any booking that is not completed yet, simply return an error
+//     // search if the time is in the future or not
+//     const { time, notes } = req.body;
+//     if (!time || !notes)
+//       return next(new AppError('Booking time and notes is required.', 400));
 
-    const existingBookingNotApproved = await Booking.findOne({
-      patientId,
-      doctorId,
-      status: 'pending',
-    });
+//     const existingBookingNotApproved = await Booking.findOne({
+//       patientId,
+//       doctorId,
+//       status: 'pending',
+//     });
 
-    if (existingBookingNotApproved)
-      return next(
-        new AppError(
-          `There is a Booking with this doctor waiting approval!`,
-          400
-        )
-      );
-    const finalTimestamp = validateTimeStamp.validateTime(time, next);
-    const bookingCreated = await Booking.create({
-      patientId,
-      doctorId,
-      time: finalTimestamp,
-      notes,
-    });
-    res.status(200).json({
-      status: 'success',
-      message: 'booking the doctor is succeed',
-      data: bookingCreated,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
+//     if (existingBookingNotApproved)
+//       return next(
+//         new AppError(
+//           `There is a Booking with this doctor waiting approval!`,
+//           400
+//         )
+//       );
+//     const finalTimestamp = validateTimeStamp.validateTime(time, next);
+//     const bookingCreated = await Booking.create({
+//       patientId,
+//       doctorId,
+//       time: finalTimestamp,
+//       notes,
+//     });
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'booking the doctor is succeed',
+//       data: bookingCreated,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 // cancel specifc booking by
 // cencel booking mean to change its status to cancelled, so when there is any operation within  the booking must filter
 // filter out any booking that has cancelled status
-const cancelBooking = async (req, res, next) => {
+const cancelBookingSlot = async (req, res, next) => {
   try {
     const userId = req.user.id; // from protect middleware
     const patientDocument = await Patient.findOne({ userId });
@@ -299,7 +298,7 @@ const cancelBooking = async (req, res, next) => {
   }
 };
 
-const updateMyBooking = async (req, res, next) => {
+const updateMyBookingNotes = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const patientDocument = await Patient.findOne({ userId });
@@ -319,13 +318,6 @@ const updateMyBooking = async (req, res, next) => {
       );
 
     const updatedDataInput = req.body;
-    if (updatedDataInput.time) {
-      const finalTimestamp = validateTimeStamp.validateTime(
-        updatedDataInput.time,
-        next
-      );
-      foundedBooking.time = finalTimestamp;
-    }
     if (updatedDataInput.notes) foundedBooking.notes = updatedDataInput.notes;
     await foundedBooking.save();
 
@@ -346,10 +338,9 @@ const updateMyBooking = async (req, res, next) => {
 module.exports = {
   getAllDoctors,
   requestSlotWithDoctor,
-  cancelBooking,
+  cancelBookingSlot,
   getMeInfo,
-  bookWithDoctor,
   myBookings,
   myBooking,
-  updateMyBooking,
+  updateMyBookingNotes,
 };

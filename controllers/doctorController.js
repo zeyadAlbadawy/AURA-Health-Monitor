@@ -242,6 +242,7 @@ const patientsRequestsWithMe = async (req, res, next) => {
       const patientDetail = book.patientId && book.patientId.userId;
       return {
         bookingId: book._id,
+        slotId: book.slotId,
         time: book.time,
         notes: book.notes,
         patientName: patientDetail
@@ -354,13 +355,11 @@ const updateBooking = async (req, res, next) => {
         )
       );
 
-    if (req.body.time)
-      foundedBooking.time = validateTimeStamp.validateTime(req.body.time);
     if (req.body.notes) foundedBooking.notes = req.body.notes;
     await foundedBooking.save({ validateBeforeSave: false, new: true });
     res.status(200).json({
       status: 'success',
-      message: 'booking updated successfully!',
+      message: 'booking notes updated successfully!',
       data: foundedBooking,
     });
   } catch (err) {

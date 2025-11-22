@@ -13,17 +13,6 @@ patientRouter.use(protectMiddleware.protect);
 patientRouter.use(restriction.restrictTo('patient'));
 patientRouter.use(completeProfile.checkProfileCompletness); // does not work without protect middleware
 
-patientRouter
-  .route('/book-with-doctor/:id')
-  .post(patientController.bookWithDoctor);
-
-patientRouter
-  .route('/cancel-booking/:id')
-  .post(patientController.cancelBooking);
-patientRouter
-  .route('/update-booking/:id')
-  .post(patientController.updateMyBooking);
-
 // slots
 patientRouter.route('/available-doctors').get(patientController.getAllDoctors);
 patientRouter.route('/available-doctors/:id').get(doctorController.getMeInfo); //get one doctor info
@@ -38,5 +27,12 @@ patientRouter
   .post(patientController.requestSlotWithDoctor);
 patientRouter.route('/my-bookings').get(patientController.myBookings);
 patientRouter.route('/my-booking/:id').get(patientController.myBooking);
+patientRouter
+  .route('/update-booking/:id')
+  .post(patientController.updateMyBookingNotes);
+
+patientRouter
+  .route('/cancel-booking/:id')
+  .post(patientController.cancelBookingSlot);
 
 module.exports = patientRouter;
