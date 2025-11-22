@@ -38,6 +38,11 @@ const DoctorSchema = new mongoose.Schema(
       default: 0,
     },
 
+    noOfSlots: {
+      type: Number,
+      default: 0,
+    },
+
     ratingsAverage: {
       type: Number,
       default: 3.5,
@@ -50,6 +55,7 @@ const DoctorSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Admin must manually approve
     },
+
     createdAt: {
       type: Date,
       default: new Date(Date.now()),

@@ -4,7 +4,10 @@ const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const Booking = require('../models/bookingModel');
 const validateTimeStamp = require('../utils/timeStampValidate.js');
+const mongoose = require('mongoose');
+const Slot = require('../models/slotModel.js');
 // all the doctors assinged to patient and not assigned to patient
+
 const getAllDoctors = async (req, res, next) => {
   try {
     let doctors = await Doctor.find({ isApproved: true }).populate({
@@ -22,6 +25,8 @@ const getAllDoctors = async (req, res, next) => {
         licenseNumber: doctor.licenseNumber,
         priceSession: doctor.priceSession,
         yearsOfExperience: doctor.yearsOfExperience,
+        ratingsAverage: doctor.ratingsAverage,
+        ratingsQuantity: doctor.ratingsQuantity,
       });
     });
 
@@ -76,59 +81,47 @@ const getMeInfo = async (req, res, next) => {
   }
 };
 
-// get the doctor that this patient assigned to
-const doctorThisPatientAssignedTo = async (req, res, next) => {
+const requestSlotWithDoctor = async (req, res, next) => {
   try {
-  } catch (err) {
-    next(err);
-  }
-};
+    const userId = req.user.id; // from protect middleware
+    const patient = await Patient.findOne({ userId });
+    const patientId = patient.id;
+    const { doctorId, slotId } = req.params;
+    const { notes } = req.body;
 
-const bookWithDoctor = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // the userId stored inside the patient model which refers to User model
-    const doctorId = req.params.id; // the doctor which this patient try to book with
-    const patientDocument = await Patient.findOne({ userId });
+    if (
+      !mongoose.Types.ObjectId.isValid(slotId) ||
+      !mongoose.Types.ObjectId.isValid(doctorId)
+    )
+      return next(new AppError('Invalid ID format', 400));
 
-    const patientId = patientDocument ? patientDocument._id : null;
-    if (!patientId || !doctorId)
-      return next(
-        new AppError(
-          `Thjere is a problem with the booking you are trying to made, try again later! `,
-          400
-        )
-      );
+    // Check if the user provide slotid and doctorID
+    if (!doctorId || !slotId)
+      return next(new AppError(`Invalid slotId and doctorId passed`, 400));
 
-    // search if there is any booking that is not completed yet, simply return an error
-    // search if the time is in the future or not
-    const { time, notes } = req.body;
-    if (!time || !notes)
-      return next(new AppError('Booking time and notes is required.', 400));
-
-    const existingBookingNotApproved = await Booking.findOne({
-      patientId,
+    // check if this slot is owned for this doctor
+    const foundedSlot = await Slot.findOne({
+      _id: slotId,
       doctorId,
-      status: 'pending',
     });
 
-    if (existingBookingNotApproved)
-      return next(
-        new AppError(
-          `There is a Booking with this doctor waiting approval!`,
-          400
-        )
-      );
-    const finalTimestamp = validateTimeStamp.validateTime(time, next);
-    const bookingCreated = await Booking.create({
-      patientId,
+    if (!foundedSlot)
+      return next(new AppError('Slot does not exist for this doctor', 404));
+
+    if (foundedSlot.isBooked)
+      return next(new AppError('Slot already booked', 400));
+
+    const newCreatedBooking = await Booking.create({
       doctorId,
-      time: finalTimestamp,
+      patientId,
+      slotId,
       notes,
     });
-    res.status(200).json({
-      status: 'success',
-      message: 'booking the doctor is succeed',
-      data: bookingCreated,
+
+    res.status(201).json({
+      status: 'succes',
+      message: 'booking request is waiting approval',
+      data: newCreatedBooking,
     });
   } catch (err) {
     next(err);
@@ -145,11 +138,37 @@ const myBookings = async (req, res, next) => {
       return next(
         new AppError(`There is an error while retriving the data`, 400)
       );
-    const foundedBookings = await Booking.find({ patientId });
+    const foundedBookings = await Booking.find({ patientId }).populate({
+      path: 'doctorId',
+      populate: {
+        path: 'userId',
+        select: '_id firstName lastName email specialization ',
+      },
+      select: 'specialization licenseNumber yearsOfExperience priceSession',
+    });
+
+    const formattedBooking = foundedBookings.map((booking) => ({
+      bookingId: booking._id,
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status,
+
+      doctor: {
+        doctorId: booking.doctorId._id,
+        fullNamee: `${booking.doctorId?.userId?.firstName} ${booking.doctorId?.userId?.lastName}`,
+        email: booking.doctorId?.userId?.email,
+        specialization: booking.doctorId?.specialization,
+        licenseNumber: booking.doctorId?.licenseNumber,
+        yearsOfExperience: booking.doctorId?.yearsOfExperience,
+        priceSession: booking.doctorId?.priceSession,
+      },
+    }));
+
     res.status(200).json({
       status: 'success',
       length: foundedBookings.length,
-      data: foundedBookings,
+      data: formattedBooking,
     });
   } catch (err) {
     next(err);
@@ -163,16 +182,15 @@ const myBooking = async (req, res, next) => {
     const patientDocument = await Patient.findOne({ userId });
     const patientId = patientDocument.id;
     const bookingId = req.params.id;
-
-    if (foundedBooking.patientId !== patientId)
-      return next(
-        new AppError(`This booking belongs to a different patient`, 401)
-      );
+    if (!mongoose.Types.ObjectId.isValid(bookingId))
+      return next(new AppError('Invalid review ID format', 400));
 
     const foundedBooking = await Booking.findOne({
       _id: bookingId,
       patientId,
-      status: { $in: ['pending', 'confirmed', 'rejected', 'completed'] },
+      status: {
+        $in: ['pending', 'confirmed', 'rejected', 'completed', 'approved'],
+      },
     });
 
     if (!foundedBooking)
@@ -192,10 +210,61 @@ const myBooking = async (req, res, next) => {
   }
 };
 
+// const bookWithDoctor = async (req, res, next) => {
+//   try {
+//     const userId = req.user.id; // the userId stored inside the patient model which refers to User model
+//     const doctorId = req.params.id; // the doctor which this patient try to book with
+//     const patientDocument = await Patient.findOne({ userId });
+
+//     const patientId = patientDocument ? patientDocument._id : null;
+//     if (!patientId || !doctorId)
+//       return next(
+//         new AppError(
+//           `Thjere is a problem with the booking you are trying to made, try again later! `,
+//           400
+//         )
+//       );
+
+//     // search if there is any booking that is not completed yet, simply return an error
+//     // search if the time is in the future or not
+//     const { time, notes } = req.body;
+//     if (!time || !notes)
+//       return next(new AppError('Booking time and notes is required.', 400));
+
+//     const existingBookingNotApproved = await Booking.findOne({
+//       patientId,
+//       doctorId,
+//       status: 'pending',
+//     });
+
+//     if (existingBookingNotApproved)
+//       return next(
+//         new AppError(
+//           `There is a Booking with this doctor waiting approval!`,
+//           400
+//         )
+//       );
+//     const finalTimestamp = validateTimeStamp.validateTime(time, next);
+//     const bookingCreated = await Booking.create({
+//       patientId,
+//       doctorId,
+//       time: finalTimestamp,
+//       notes,
+//     });
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'booking the doctor is succeed',
+//       data: bookingCreated,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 // cancel specifc booking by
 // cencel booking mean to change its status to cancelled, so when there is any operation within  the booking must filter
 // filter out any booking that has cancelled status
-const cancelBooking = async (req, res, next) => {
+const cancelBookingSlot = async (req, res, next) => {
   try {
     const userId = req.user.id; // from protect middleware
     const patientDocument = await Patient.findOne({ userId });
@@ -229,7 +298,7 @@ const cancelBooking = async (req, res, next) => {
   }
 };
 
-const updateMyBooking = async (req, res, next) => {
+const updateMyBookingNotes = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const patientDocument = await Patient.findOne({ userId });
@@ -249,13 +318,6 @@ const updateMyBooking = async (req, res, next) => {
       );
 
     const updatedDataInput = req.body;
-    if (updatedDataInput.time) {
-      const finalTimestamp = validateTimeStamp.validateTime(
-        updatedDataInput.time,
-        next
-      );
-      foundedBooking.time = finalTimestamp;
-    }
     if (updatedDataInput.notes) foundedBooking.notes = updatedDataInput.notes;
     await foundedBooking.save();
 
@@ -275,10 +337,10 @@ const updateMyBooking = async (req, res, next) => {
 // then make this doctor no of sessins performed increase by one
 module.exports = {
   getAllDoctors,
-  cancelBooking,
+  requestSlotWithDoctor,
+  cancelBookingSlot,
   getMeInfo,
-  bookWithDoctor,
   myBookings,
   myBooking,
-  updateMyBooking,
+  updateMyBookingNotes,
 };
