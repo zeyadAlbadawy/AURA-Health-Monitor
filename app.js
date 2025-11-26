@@ -31,7 +31,7 @@ app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/doctors', doctorRouter);
 app.use('/api/v1/patients', patientRouter);
 app.use('/api/v1/reviews', reviewRouter);
-app.use('/api/v1/payments', paymentRouter);
+app.use('/api/payment/callback', paymentRouter);
 // For Web only
 
 // For mobile only

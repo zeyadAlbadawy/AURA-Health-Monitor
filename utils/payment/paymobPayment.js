@@ -24,6 +24,25 @@ class PaymobPayment extends BasePaymentService {
     // console.log(response);
     return response.data?.token;
   }
+
+  async sendPayment(req) {
+    this.headers['Authorization'] =
+      'Bearer ' + (await this.generateTokenFromGateway());
+
+    const data = {
+      ...req.body,
+      api_source: 'INVOICE',
+      integrations: this.integrations_id,
+    };
+
+    const createPaymentRes = await this.buildRequest(
+      'POST',
+      '/api/ecommerce/orders',
+      data
+    );
+
+    return createPaymentRes;
+  }
 }
 
 module.exports = PaymobPayment;
