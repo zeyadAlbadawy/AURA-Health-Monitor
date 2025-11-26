@@ -143,7 +143,7 @@ const validateOtp = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      message: 'OTP validated successfully. Please complete your profile.',
+      message: 'OTP validated successfully.',
       data: {
         token,
         // Include a flag or next step instruction for the frontend

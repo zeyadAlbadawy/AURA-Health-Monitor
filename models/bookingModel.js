@@ -21,7 +21,7 @@ const BookingSchema = new mongoose.Schema({
   paymentInfo: {
     paymentId: String,
     amount: Number,
-    method: String,
+    method: String, // when paid is success
     paidAt: Date,
   },
 
@@ -36,6 +36,7 @@ const BookingSchema = new mongoose.Schema({
       'pending', // patient requested slot → waiting doctor's approval
       'approved', // doctor approved → patient must pay
       'confirmed', // payment done
+      'unpaid', // ask for payment but not paid yet
       'cancelled',
       'rejected',
       'completed',

@@ -6,6 +6,7 @@ const Booking = require('../models/bookingModel');
 const validateTimeStamp = require('../utils/timeStampValidate.js');
 const mongoose = require('mongoose');
 const Slot = require('../models/slotModel.js');
+const PaymobPayment = require('../utils/payment/paymobPayment.js');
 // all the doctors assinged to patient and not assigned to patient
 
 const getAllDoctors = async (req, res, next) => {
@@ -75,53 +76,6 @@ const getMeInfo = async (req, res, next) => {
       status: 'success',
       message: 'Patient profile retrieved successfully.',
       data: formattedData,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const requestSlotWithDoctor = async (req, res, next) => {
-  try {
-    const userId = req.user.id; // from protect middleware
-    const patient = await Patient.findOne({ userId });
-    const patientId = patient.id;
-    const { doctorId, slotId } = req.params;
-    const { notes } = req.body;
-
-    if (
-      !mongoose.Types.ObjectId.isValid(slotId) ||
-      !mongoose.Types.ObjectId.isValid(doctorId)
-    )
-      return next(new AppError('Invalid ID format', 400));
-
-    // Check if the user provide slotid and doctorID
-    if (!doctorId || !slotId)
-      return next(new AppError(`Invalid slotId and doctorId passed`, 400));
-
-    // check if this slot is owned for this doctor
-    const foundedSlot = await Slot.findOne({
-      _id: slotId,
-      doctorId,
-    });
-
-    if (!foundedSlot)
-      return next(new AppError('Slot does not exist for this doctor', 404));
-
-    if (foundedSlot.isBooked)
-      return next(new AppError('Slot already booked', 400));
-
-    const newCreatedBooking = await Booking.create({
-      doctorId,
-      patientId,
-      slotId,
-      notes,
-    });
-
-    res.status(201).json({
-      status: 'succes',
-      message: 'booking request is waiting approval',
-      data: newCreatedBooking,
     });
   } catch (err) {
     next(err);
@@ -330,6 +284,169 @@ const updateMyBookingNotes = async (req, res, next) => {
     next(err);
   }
 };
+const requestSlotWithDoctor = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // from protect middleware
+    const patient = await Patient.findOne({ userId });
+    const patientId = patient.id;
+    const { doctorId, slotId } = req.params;
+    const { notes } = req.body;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(slotId) ||
+      !mongoose.Types.ObjectId.isValid(doctorId)
+    )
+      return next(new AppError('Invalid ID format', 400));
+
+    // Check if the user provide slotid and doctorID
+    if (!doctorId || !slotId)
+      return next(new AppError(`Invalid slotId and doctorId passed`, 400));
+
+    // check if this slot is owned for this doctor
+    const foundedSlot = await Slot.findOne({
+      _id: slotId,
+      doctorId,
+    });
+
+    if (!foundedSlot)
+      return next(new AppError('Slot does not exist for this doctor', 404));
+
+    if (foundedSlot.isBooked)
+      return next(new AppError('Slot already booked', 400));
+
+    const newCreatedBooking = await Booking.create({
+      doctorId,
+      patientId,
+      slotId,
+      notes,
+    });
+
+    res.status(201).json({
+      status: 'succes',
+      message: 'booking request is waiting approval',
+      data: newCreatedBooking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+// doctorId/request-slot/slot_id
+// {{URL}}api/v1/patients/all-available-slots/691e2d37d0a4bc00fe70dcc0/request-slot/692009d39b4d20c61e69a0bd
+const makePaymentOfSlot = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { slotId, doctorId } = req.params;
+    const patientDocument = await Patient.findOne({ userId }).populate({
+      path: 'userId',
+      select: 'firstName lastName email',
+    });
+    const patientId = patientDocument.id;
+
+    const foundedSlot = await Slot.findOne({ _id: slotId, doctorId });
+    const foundedDoctor = await Doctor.findOne({ _id: doctorId }).populate({
+      path: 'userId',
+      select: 'firstName lastName email',
+    });
+    const foundedBooking = await Booking.findOne({
+      doctorId,
+      slotId,
+      patientId,
+    });
+    const priceSession = foundedDoctor.priceSession;
+    if (!foundedSlot)
+      return next(new AppError(`There is no slot with the provided id. `, 404));
+
+    if (!foundedSlot.isApproved)
+      return next(
+        new AppError(
+          `you can not proceed with this payment as the doctor not approved it yet!`,
+          400
+        )
+      );
+
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `Please Ask The Doctor to confirm the slot booking first.`,
+          400
+        )
+      );
+
+    // Step 1 — Prepare the data for Paymob
+    const paymob = new PaymobPayment();
+    const paymobBodyInput = {
+      amount_cents: `${priceSession * 100}`,
+      currency: 'EGP',
+      shipping_data: {
+        first_name: patientDocument.userId.firstName,
+        last_name: patientDocument.userId.lastName,
+        email: patientDocument.userId.email,
+      },
+      items: [
+        {
+          name: 'Booing a session with the doctor',
+          description: `Booking with doctor ${foundedDoctor.userId.firstName} ${foundedDoctor.userId.lastName}`,
+          amount_cents: `${priceSession * 100}`,
+          quantity: '1',
+        },
+      ],
+      delivery_needed: 'false',
+    };
+
+    req.body = paymobBodyInput;
+
+    // Step 2 — Call Paymob to create the order
+    const paymentRes = await paymob.sendPayment(req);
+
+    // Step 3 — Save Paymob order id for webhook verification
+    foundedBooking.paymentInfo.paymentId = paymentRes?.data?.id;
+    foundedBooking.paymentInfo.amount = priceSession * 100;
+    foundedBooking.status = 'unpaid'; // ask for payment but not proceed yet!
+    await foundedBooking.save();
+
+    // Step 4 — Send payment link to frontend
+    res.status(200).json({
+      status: 'success',
+      message: 'Redirect the user to complete payment.',
+      payUrl: paymentRes.data.url,
+      orderId: paymentRes.data.id,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const paymobWebhookController = async (req, res, next) => {
+  try {
+    const query = req.query; // Paymob sends all data as query params
+    const { success, order } = query; // 'order' is the booking id or order_id
+    const order_id = order;
+
+    console.log(req.query);
+    res.status(200).json({
+      status: 'success',
+      data: req.query,
+    });
+    // const booking = await Booking.findOne({
+    //   'paymentInfo.paymentId': order_id,
+    // });
+
+    // if (!booking) {
+    //   return next(new AppError(`No booking found for order ${order_id}`, 404));
+    // }
+
+    // booking.status = success === 'true' ? 'confirmed' : 'failed';
+    // await booking.save();
+
+    // res.status(200).json({
+    //   status: 'success',
+    //   message: 'Webhook processed',
+    // });
+  } catch (err) {
+    console.error(err);
+    next(err);
+  }
+};
 
 // i wanna make booking which allows patient to choose doctor and the status is provided
 // if it is confirmed i will allow the patient to make a payment on the session price
@@ -343,4 +460,6 @@ module.exports = {
   myBookings,
   myBooking,
   updateMyBookingNotes,
+  makePaymentOfSlot,
+  paymobWebhookController,
 };

@@ -35,4 +35,8 @@ patientRouter
   .route('/cancel-booking/:id')
   .post(patientController.cancelBookingSlot);
 
+patientRouter
+  .route('/api/payment/callback')
+  .post(patientController.paymobWebhookController);
+
 module.exports = patientRouter;
