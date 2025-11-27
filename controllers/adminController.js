@@ -1,6 +1,7 @@
 const Doctor = require('../models/doctorModel.js');
 const AppError = require('../utils/appError.js');
 const Product = require('./../models/productModel.js');
+const Order = require('./../models/OrderModel.js');
 const mongoose = require('mongoose');
 
 const filterObj = (obj, ...allowedFields) => {
@@ -93,7 +94,7 @@ const deleteProduct = async (req, res, next) => {
       return next(new AppError('No product found with this id', 404));
     }
 
-    res.status(202).json({
+    res.status(204).json({
       status: 'success',
     });
   } catch (error) {
@@ -102,10 +103,10 @@ const deleteProduct = async (req, res, next) => {
 };
 
 const editProduct = async (req, res, next) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return next(new AppError('Invalid ID format', 400));
-  }
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return next(new AppError('Invalid ID format', 400));
+    }
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -141,10 +142,77 @@ const editProduct = async (req, res, next) => {
   }
 };
 
+const getOrderById = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return next(new AppError('Invalid ID format', 400));
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return next(new AppError('No order found with this id', 404));
+    }
+
+    res.status(200).json({
+      status: 'Success',
+      message: {
+        data: order,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.find();
+    if (!orders) {
+      return next(new AppError('No orders found', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      results: orders.length,
+      data: { orders },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateOrderStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { orderStatus } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      { orderStatus },
+      { new: true, runValidators: true }
+    );
+
+    if (!order) {
+      return next(new AppError('No order found with this id', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: { order },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   approveDoctor,
   getAllDoctors,
   addNewProduct,
   deleteProduct,
   editProduct,
+  getOrderById,
+  getAllOrders,
+  updateOrderStatus,
 };

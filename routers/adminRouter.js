@@ -9,44 +9,19 @@ const adminController = require('../controllers/adminController.js');
 const restriction = require('../middlewares/checkAdmin.js');
 const completeProfile = require('../middlewares/completedProfile.js');
 
-adminRouter
-  .route('/add-new-product')
-  .post(
-    protectMiddleware.protect,
-    restriction.restrictTo('admin'),
-    adminController.addNewProduct
-  );
+adminRouter.use(protectMiddleware.protect);
+adminRouter.use(restriction.restrictTo('admin'));
 
+adminRouter.route('/product').post(adminController.addNewProduct);
 adminRouter
-  .route('/delete-product/:id')
-  .delete(
-    protectMiddleware.protect,
-    restriction.restrictTo('admin'),
-    adminController.deleteProduct
-  );
+  .route('/product/:id')
+  .delete(adminController.deleteProduct)
+  .patch(adminController.editProduct);
+adminRouter.route('/orders/:id').get(adminController.getOrderById);
+adminRouter.route('/orders/:id').patch(adminController.updateOrderStatus);
+adminRouter.route('/all-orders').get(adminController.getAllOrders);
 
-adminRouter
-  .route('/edit-product/:id')
-  .patch(
-    protectMiddleware.protect,
-    restriction.restrictTo('admin'),
-    adminController.editProduct
-  );
-
-adminRouter
-  .route('/approve-doctor/:id')
-  .post(
-    protectMiddleware.protect,
-    restriction.restrictTo('admin'),
-    adminController.approveDoctor
-  );
-
-adminRouter
-  .route('/all-doctors')
-  .get(
-    protectMiddleware.protect,
-    restriction.restrictTo('admin'),
-    adminController.getAllDoctors
-  );
+adminRouter.route('/approve-doctor/:id').post(adminController.approveDoctor);
+adminRouter.route('/all-doctors').get(adminController.getAllDoctors);
 
 module.exports = adminRouter;
