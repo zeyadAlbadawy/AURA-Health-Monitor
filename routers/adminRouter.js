@@ -10,6 +10,30 @@ const restriction = require('../middlewares/checkAdmin.js');
 const completeProfile = require('../middlewares/completedProfile.js');
 
 adminRouter
+  .route('/add-new-product')
+  .post(
+    protectMiddleware.protect,
+    restriction.restrictTo('admin'),
+    adminController.addNewProduct
+  );
+
+adminRouter
+  .route('/delete-product/:id')
+  .delete(
+    protectMiddleware.protect,
+    restriction.restrictTo('admin'),
+    adminController.deleteProduct
+  );
+
+adminRouter
+  .route('/edit-product/:id')
+  .patch(
+    protectMiddleware.protect,
+    restriction.restrictTo('admin'),
+    adminController.editProduct
+  );
+
+adminRouter
   .route('/approve-doctor/:id')
   .post(
     protectMiddleware.protect,

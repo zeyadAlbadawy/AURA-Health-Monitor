@@ -4,6 +4,8 @@ const adminRouter = require('./routers/adminRouter');
 const doctorRouter = require('./routers/doctorRouter');
 const patientRouter = require('./routers/patientRouter');
 const reviewRouter = require('./routers/reviewRouter');
+const productRouter = require('./routers/productRouter');
+const orderRouter = require('./routers/orderRouter');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const passportConfig = require('./middlewares/google-oauth20');
@@ -22,6 +24,9 @@ app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/doctors', doctorRouter);
 app.use('/api/v1/patients', patientRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/products', productRouter);
+app.use('/api/v1/orders', orderRouter);
+
 // For Web only
 
 // For mobile only
