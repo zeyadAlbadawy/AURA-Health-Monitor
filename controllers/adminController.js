@@ -1,6 +1,7 @@
 const Doctor = require('../models/doctorModel.js');
 const AppError = require('../utils/appError.js');
 const Product = require('./../models/productModel.js');
+const mongoose = require('mongoose');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
