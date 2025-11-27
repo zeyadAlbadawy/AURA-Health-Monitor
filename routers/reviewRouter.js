@@ -1,11 +1,7 @@
 const express = require('express');
-
 const reviewController = require('./../controllers/reviewController');
-
 const protectMiddleware = require('./../middlewares/protect-router');
-
 const restriction = require('./../middlewares/checkAdmin');
-
 const router = express.Router({ mergeParams: true });
 
 router.use(protectMiddleware.protect);
