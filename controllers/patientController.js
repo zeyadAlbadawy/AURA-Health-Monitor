@@ -335,7 +335,7 @@ const requestSlotWithDoctor = async (req, res, next) => {
 const makePaymentOfSlot = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { slotId, doctorId } = req.params;
+    const { slotId, doctorId, bookingId } = req.params;
     const patientDocument = await Patient.findOne({ userId }).populate({
       path: 'userId',
       select: 'firstName lastName email',
@@ -348,6 +348,7 @@ const makePaymentOfSlot = async (req, res, next) => {
       select: 'firstName lastName email',
     });
     const foundedBooking = await Booking.findOne({
+      _id: bookingId,
       doctorId,
       slotId,
       patientId,
@@ -356,7 +357,15 @@ const makePaymentOfSlot = async (req, res, next) => {
     if (!foundedSlot)
       return next(new AppError(`There is no slot with the provided id. `, 404));
 
-    if (!foundedSlot.isApproved)
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `Please Ask The Doctor to confirm the slot booking first.`,
+          400
+        )
+      );
+
+    if (foundedBooking.status === 'pending')
       return next(
         new AppError(
           `you can not proceed with this payment as the doctor not approved it yet!`,
@@ -364,10 +373,10 @@ const makePaymentOfSlot = async (req, res, next) => {
         )
       );
 
-    if (!foundedBooking)
+    if (foundedBooking.status === 'rejected')
       return next(
         new AppError(
-          `Please Ask The Doctor to confirm the slot booking first.`,
+          `you can not proceed with this payment as the doctor reject it yet!, try asking for another slot`,
           400
         )
       );
@@ -381,6 +390,7 @@ const makePaymentOfSlot = async (req, res, next) => {
         first_name: patientDocument.userId.firstName,
         last_name: patientDocument.userId.lastName,
         email: patientDocument.userId.email,
+        phone_number: '01010101010',
       },
       items: [
         {
@@ -399,7 +409,7 @@ const makePaymentOfSlot = async (req, res, next) => {
     const paymentRes = await paymob.sendPayment(req);
 
     // Step 3 — Save Paymob order id for webhook verification
-    foundedBooking.paymentInfo.paymentId = paymentRes?.data?.id;
+    foundedBooking.paymentInfo.orderId = paymentRes?.data?.id;
     foundedBooking.paymentInfo.amount = priceSession * 100;
     foundedBooking.status = 'unpaid'; // ask for payment but not proceed yet!
     await foundedBooking.save();
@@ -419,29 +429,31 @@ const makePaymentOfSlot = async (req, res, next) => {
 const paymobWebhookController = async (req, res, next) => {
   try {
     const query = req.query; // Paymob sends all data as query params
-    const { success, order } = query; // 'order' is the booking id or order_id
-    const order_id = order;
+    console.log(
+      'QUERY⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽'
+    );
+    console.log(query);
+    const foundedBooking = await Booking.findOne({
+      'paymentInfo.orderId': query.order,
+    });
+
+    if (!foundedBooking)
+      return next(
+        new AppError(
+          `There is an error with the payment of this order or not found`,
+          400
+        )
+      );
 
     console.log(req.query);
+
+    foundedBooking.status = query.success ? 'confirmed' : 'failed';
+    await foundedBooking.save();
+
     res.status(200).json({
       status: 'success',
-      data: req.query,
+      message: 'Webhook processed',
     });
-    // const booking = await Booking.findOne({
-    //   'paymentInfo.paymentId': order_id,
-    // });
-
-    // if (!booking) {
-    //   return next(new AppError(`No booking found for order ${order_id}`, 404));
-    // }
-
-    // booking.status = success === 'true' ? 'confirmed' : 'failed';
-    // await booking.save();
-
-    // res.status(200).json({
-    //   status: 'success',
-    //   message: 'Webhook processed',
-    // });
   } catch (err) {
     console.error(err);
     next(err);

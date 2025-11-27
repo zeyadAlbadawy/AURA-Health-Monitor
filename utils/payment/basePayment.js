@@ -17,6 +17,7 @@ class BasePaymentService {
       const response = await axios(requestConfig);
       return response;
     } catch (err) {
+      console.log(err);
       return {
         success: false,
         status: 500,
