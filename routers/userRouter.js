@@ -32,15 +32,21 @@ userRouter.get(
   '/profile',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
-    console.log(req.user.id);
-    console.log('userProfile');
+    // console.log(req.user.id);
+    // console.log('userProfile');
     const token = jwtCreation.generateRefreshToken(req.user.id);
 
     res.cookie('refreshJwtToken', token);
 
-    res.status(200).send(`<h1>✅ Google Login Successful</h1>
-      <p>User ID: ${req.user.id}</p>
-      <p>Your refresh token: ${token}</p>`);
+    res.status(200).json({
+      status: 'success',
+      message: 'Google Login Successful',
+      token,
+    });
+
+    // res.status(200).send(`<h1>✅ Google Login Successful</h1>
+    //   <p>User ID: ${req.user.id}</p>
+    //   <p>Your refresh token: ${token}</p>`);
 
     // res.redirect(`http://localhost:3000/success?token=${token}`);
   }

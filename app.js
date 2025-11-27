@@ -1,8 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const userRouter = require('./routers/userRouter');
 const adminRouter = require('./routers/adminRouter');
 const doctorRouter = require('./routers/doctorRouter');
 const patientRouter = require('./routers/patientRouter');
+const paymentRouter = require('./routers/paymentRouter');
 const reviewRouter = require('./routers/reviewRouter');
 const productRouter = require('./routers/productRouter');
 const orderRouter = require('./routers/orderRouter');
@@ -19,11 +21,19 @@ passportConfig(app); // for google auth
 // app.set('view engine', 'pug');
 // Common
 
+// SECURED FOR PAYMENT GATEWAYS
+// app.use(
+//   cors({
+//     origin: ['http://localhost:3000'], // allowed origins
+//     credentials: true, // allow cookies
+//   })
+// );
 app.use('/api/v1/users/auth/', userRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/doctors', doctorRouter);
 app.use('/api/v1/patients', patientRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/payment/callback', paymentRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/orders', orderRouter);
 

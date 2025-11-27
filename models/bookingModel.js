@@ -19,9 +19,10 @@ const BookingSchema = new mongoose.Schema({
   },
 
   paymentInfo: {
-    paymentId: String,
+    paymentId: String, // when payment is success // trx
+    orderId: String,
     amount: Number,
-    method: String,
+    method: String, // when paid is success
     paidAt: Date,
   },
 
@@ -36,9 +37,11 @@ const BookingSchema = new mongoose.Schema({
       'pending', // patient requested slot → waiting doctor's approval
       'approved', // doctor approved → patient must pay
       'confirmed', // payment done
-      'cancelled',
-      'rejected',
-      'completed',
+      'unpaid', // ask for payment but not paid yet
+      'cancelled', // patient cancel it
+      'rejected', // doctor reject it
+      'completed', // doctor make this booking as completed
+      'failed', // payment not proceed
     ],
     default: 'pending',
   },
