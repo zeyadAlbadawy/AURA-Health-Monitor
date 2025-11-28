@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const otpGenerate = require('../utils/otpHandler');
 const crypto = require('crypto');
 const Mail = require('../utils/mail');
+
 // Signup and login will need the jwt to be sent and stores inside the session ALSO Apply OTP
 // Apply  global error handler
 

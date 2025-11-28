@@ -7,6 +7,7 @@ const validateTimeStamp = require('../utils/timeStampValidate.js');
 const mongoose = require('mongoose');
 const Slot = require('../models/slotModel.js');
 const PaymobPayment = require('../utils/payment/paymobPayment.js');
+const hmacCalc = require('../utils/payment/hmacVerify.js');
 // all the doctors assinged to patient and not assigned to patient
 
 const getAllDoctors = async (req, res, next) => {
@@ -338,7 +339,7 @@ const makePaymentOfSlot = async (req, res, next) => {
     const { slotId, doctorId, bookingId } = req.params;
     const patientDocument = await Patient.findOne({ userId }).populate({
       path: 'userId',
-      select: 'firstName lastName email',
+      select: 'firstName lastName email mobilePhone',
     });
     const patientId = patientDocument.id;
 
@@ -390,7 +391,7 @@ const makePaymentOfSlot = async (req, res, next) => {
         first_name: patientDocument.userId.firstName,
         last_name: patientDocument.userId.lastName,
         email: patientDocument.userId.email,
-        phone_number: '01010101010',
+        phone_number: patientDocument.userId.mobilePhone,
       },
       items: [
         {
@@ -429,10 +430,6 @@ const makePaymentOfSlot = async (req, res, next) => {
 const paymobWebhookController = async (req, res, next) => {
   try {
     const query = req.query; // Paymob sends all data as query params
-    console.log(
-      'QUERY⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽⛽'
-    );
-    console.log(query);
     const foundedBooking = await Booking.findOne({
       'paymentInfo.orderId': query.order,
     });
@@ -445,14 +442,30 @@ const paymobWebhookController = async (req, res, next) => {
         )
       );
 
-    console.log(req.query);
+    // console.log(req.query);
 
-    foundedBooking.status = query.success ? 'confirmed' : 'failed';
+    // HMAC_SETTING
+    const hmacVerifyRes = hmacCalc.hmacVerification(
+      query,
+      process.env.HMAC_SECRET
+    );
+
+    if (!hmacVerifyRes)
+      foundedBooking.status =
+        query.success === 'true' &&
+        query.pending === 'false' &&
+        query.error_occured === 'false' &&
+        hmacVerifyRes &&
+        (query.txn_response_code === 'APPROVED' ||
+          query.txn_response_code === '0')
+          ? 'confirmed'
+          : 'failed';
     await foundedBooking.save();
 
     res.status(200).json({
       status: 'success',
       message: 'Webhook processed',
+      query,
     });
   } catch (err) {
     console.error(err);
