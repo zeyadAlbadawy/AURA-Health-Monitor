@@ -24,18 +24,22 @@ userRouter.route('/forget-password').post(authController.forgetPassword);
 userRouter.route('/reset-password/:token').patch(authController.resetPassword);
 
 //  GOOGLE LOGIN
-userRouter
-  .route('/google')
-  .get(passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+userRouter.get('/google', (req, res, next) => {
+  const role = req.query.role === 'doctor' ? 'doctor' : 'patient'; // get role from query params
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    state: role,
+  })(req, res, next);
+});
 
 userRouter.get(
   '/profile',
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  passport.authenticate('google', {
+    failureRedirect: '/login',
+  }),
   (req, res) => {
-    // console.log(req.user.id);
-    // console.log('userProfile');
-    const token = jwtCreation.generateRefreshToken(req.user.id);
-
+    const token = req.user.refreshToken;
     res.cookie('refreshJwtToken', token);
 
     res.status(200).json({
@@ -43,10 +47,6 @@ userRouter.get(
       message: 'Google Login Successful',
       token,
     });
-
-    // res.status(200).send(`<h1>✅ Google Login Successful</h1>
-    //   <p>User ID: ${req.user.id}</p>
-    //   <p>Your refresh token: ${token}</p>`);
 
     // res.redirect(`http://localhost:3000/success?token=${token}`);
   }

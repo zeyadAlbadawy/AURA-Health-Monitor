@@ -82,6 +82,19 @@ const UserSchema = new mongoose.Schema({
   otpExpirationDate: {
     type: Date,
   },
+  mobilePhone: {
+    type: String,
+    required: [
+      function () {
+        return !this.googleId;
+      },
+      'Please provide your phone number',
+    ],
+    match: [
+      /^\+[1-9]\d{1,14}$/,
+      'Please enter a valid phone number in the format +[country code][number]. Example: +201012345678',
+    ],
+  },
 
   // Google Session Managemet
   googleId: String,
