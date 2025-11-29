@@ -405,9 +405,18 @@ const makePaymentOfSlot = async (req, res, next) => {
     };
 
     req.body = paymobBodyInput;
+    req.sessionBased = true;
 
     // Step 2 — Call Paymob to create the order
     const paymentRes = await paymob.sendPayment(req);
+
+    if (paymentRes.success && !paymentRes.success)
+      return next(
+        new AppError(
+          `There is an error with processing payment at the mean time`,
+          400
+        )
+      );
 
     // Step 3 — Save Paymob order id for webhook verification
     foundedBooking.paymentInfo.orderId = paymentRes?.data?.id;
@@ -419,8 +428,8 @@ const makePaymentOfSlot = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Redirect the user to complete payment.',
-      payUrl: paymentRes.data.url,
-      orderId: paymentRes.data.id,
+      payUrl: paymentRes?.data?.url,
+      orderId: paymentRes?.data?.id,
     });
   } catch (err) {
     next(err);
@@ -442,24 +451,21 @@ const paymobWebhookController = async (req, res, next) => {
         )
       );
 
-    // console.log(req.query);
-
     // HMAC_SETTING
     const hmacVerifyRes = hmacCalc.hmacVerification(
       query,
       process.env.HMAC_SECRET
     );
 
-    if (!hmacVerifyRes)
-      foundedBooking.status =
-        query.success === 'true' &&
-        query.pending === 'false' &&
-        query.error_occured === 'false' &&
-        hmacVerifyRes &&
-        (query.txn_response_code === 'APPROVED' ||
-          query.txn_response_code === '0')
-          ? 'confirmed'
-          : 'failed';
+    foundedBooking.status =
+      query.success === 'true' &&
+      query.pending === 'false' &&
+      query.error_occured === 'false' &&
+      hmacVerifyRes &&
+      (query.txn_response_code === 'APPROVED' ||
+        query.txn_response_code === '0')
+        ? 'confirmed'
+        : 'failed';
     await foundedBooking.save();
 
     res.status(200).json({
@@ -468,7 +474,6 @@ const paymobWebhookController = async (req, res, next) => {
       query,
     });
   } catch (err) {
-    console.error(err);
     next(err);
   }
 };

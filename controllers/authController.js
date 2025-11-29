@@ -49,6 +49,7 @@ const signup = async (req, res, next) => {
       email: bodyInput.email,
       password: bodyInput.password,
       passwordConfirm: bodyInput.passwordConfirm,
+      mobilePhone: bodyInput.mobilePhone,
       role,
     });
 
