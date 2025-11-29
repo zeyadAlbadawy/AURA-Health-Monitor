@@ -20,7 +20,6 @@ const googleStrategyVersion = new GoogleStrategy(
         );
 
       let user = await User.findOne({ email: profile._json.email });
-      console.log(request.query);
       if (!user) {
         user = await User.create({
           firstName: profile._json.name.split(' ')[0],
