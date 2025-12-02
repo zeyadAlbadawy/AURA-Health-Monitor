@@ -12,6 +12,10 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const passportConfig = require('./middlewares/google-oauth20');
 const cookieParser = require('cookie-parser');
+const { createServer } = require('node:http');
+const { join } = require('node:path');
+const { Server } = require('socket.io');
+
 const app = express();
 require('./config/passport-config');
 app.use(express.json()); // for JSON requests
@@ -43,6 +47,9 @@ app.use('/api/v1/orders', orderRouter);
 
 // For not found routers
 app.get('/healthz', (req, res) => res.status(200).send('OK'));
+app.get('/socket', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
+});
 
 app.all('/{*any}', (req, res, next) => {
   next(
@@ -52,7 +59,19 @@ app.all('/{*any}', (req, res, next) => {
     )
   );
 });
-
 app.use(globalErrorHandler);
 
-module.exports = app;
+// Testing Socket
+
+const server = createServer(app);
+const io = new Server(server);
+
+// console.log(socket.id);
+io.on('connection', (socket) => {
+  socket.on('chat message', (msg) => {
+    console.log('message: ' + msg);
+  });
+});
+
+module.exports = server;
+// module.exports = app;
