@@ -1,1 +1,8 @@
 googleAuth - doctor
+
+rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'config.env' \
+-e "ssh -i D:\zeyad\ssh-keys\AURA_KEY.pem" \
+. ubuntu@ec2-44-200-147-233.compute-1.amazonaws.com:~/app
+
+ssh -i "D:\zeyad\ssh-keys\AURA_KEY.pem" ubuntu@ec2-44-200-147-233.compute-1.amazonaws.com
+ssh -i "D:\zeyad\ssh-keys\AURA_KEY.pem" ubuntu@ec2-44-200-147-233.compute-1.amazonaws.com
