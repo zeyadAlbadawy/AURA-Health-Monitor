@@ -6,6 +6,7 @@ const doctorRouter = require('./routers/doctorRouter');
 const patientRouter = require('./routers/patientRouter');
 const paymentRouter = require('./routers/paymentRouter');
 const reviewRouter = require('./routers/reviewRouter');
+const deviceRouter = require('./routers/deviceRouter');
 const productRouter = require('./routers/productRouter');
 const orderRouter = require('./routers/orderRouter');
 const AppError = require('./utils/appError');
@@ -41,9 +42,8 @@ app.use('/api/payment/callback', paymentRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/orders', orderRouter);
 
-// For Web only
-
-// For mobile only
+// Mobile specifc
+app.use('/api/v1/mobile/devices', deviceRouter);
 
 // For not found routers
 app.get('/healthz', (req, res) => res.status(200).send('OK'));
