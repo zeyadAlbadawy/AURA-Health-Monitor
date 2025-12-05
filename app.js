@@ -16,13 +16,20 @@ const cookieParser = require('cookie-parser');
 const { createServer } = require('node:http');
 const { join } = require('node:path');
 const { Server } = require('socket.io');
+const passport = require('passport');
+// const facebookAuth = require('./middlewares/facebookAuth');
 
 const app = express();
-require('./config/passport-config');
-app.use(express.json()); // for JSON requests
+app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // for form submissions
-app.use(cookieParser());
+app.use(cookieParser()); // for JSON requests
+
+app.use(passport.initialize());
+require('./config/passport-config');
+
 passportConfig(app); // for google auth
+
+// app.use('/auth/facebook', facebookAuth);
 // app.set('view engine', 'pug');
 // Common
 
