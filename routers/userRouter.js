@@ -52,6 +52,43 @@ userRouter.get(
   }
 );
 
+//facebook login
+
+// Redirect to Facebook
+userRouter.get('/facebook', (req, res, next) => {
+  const role = req.query.role === 'doctor' ? 'doctor' : 'patient';
+  passport.authenticate('facebook', {
+    scope: ['email'],
+    state: role,
+  })(req, res, next);
+});
+
+// Facebook callback
+userRouter.get(
+  '/facebook/callback',
+  passport.authenticate('facebook', {
+    session: false,
+    failureRedirect: '/login',
+  }),
+  (req, res) => {
+    // User is authenticated, generate JWT
+    const token = jwtCreation.generateAccessToken(req.user._id);
+
+    // Optionally set refresh token cookie
+    res.cookie('refreshJwtToken', req.user.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Facebook Login Successful',
+      token,
+      role: req.user.role, // just to verify
+    });
+  }
+);
+
 // userRouter
 //   .route('/complete-profile')
 //   .post(protectMiddleware.protect, authController.completeProfile);

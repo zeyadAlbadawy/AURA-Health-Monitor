@@ -35,7 +35,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [
       function () {
-        return !this.googleId;
+        return !this.googleId && !this.facebookId;
       },
       'Please provide your password',
     ],
@@ -46,7 +46,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [
       function () {
-        return !this.googleId;
+        return !this.googleId && !this.facebookId;
       },
       ,
       'User Password Confirmation is required',
@@ -86,7 +86,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [
       function () {
-        return !this.googleId;
+        return !this.googleId && !this.facebookId;
       },
       'Please provide your phone number',
     ],
@@ -102,12 +102,13 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: new Date(Date.now()),
   },
+  facebookId: { type: String, unique: true, sparse: true },
 });
 
 // Hash the password before saving it into DB
 UserSchema.pre('save', async function (next) {
   // if the password is not modified so there is no need to run this, simply jump into the next middleware
-  if (!this.isModified('password')) return next();
+  if (!this.password || !this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
   next();

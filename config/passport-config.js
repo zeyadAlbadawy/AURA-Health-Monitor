@@ -4,6 +4,7 @@ const jwtCreation = require('../utils/createSendJWT');
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const googleStrategyVersion = new GoogleStrategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -48,5 +49,40 @@ passport.deserializeUser(async (id, done) => {
   const user = await User.findById(id);
   done(null, user);
 });
+
+passport.use(
+  new FacebookStrategy(
+    {
+      clientID: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_SECRET_KEY,
+      callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+      profileFields: ['id', 'displayName', 'emails'],
+      passReqToCallback: true,
+    },
+    async function (req, accessToken, refreshToken, profile, done) {
+      try {
+        const role = req.query.state || 'patient';
+        let user = await User.findOne({ facebookId: profile.id });
+
+        if (!user) {
+          const [firstName, ...rest] = profile.displayName.split(' ');
+          const lastName = rest.join(' ');
+
+          user = await User.create({
+            facebookId: profile.id,
+            firstName,
+            lastName,
+            email: profile.emails?.[0]?.value,
+            role,
+          });
+        }
+
+        done(null, user);
+      } catch (err) {
+        return done(new AppError('Facebook authentication failed', 500), null);
+      }
+    }
+  )
+);
 
 module.exports = passport;
