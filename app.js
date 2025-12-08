@@ -16,6 +16,8 @@ const cookieParser = require('cookie-parser');
 const { createServer } = require('node:http');
 const { join } = require('node:path');
 const { Server } = require('socket.io');
+const dataRecieved = require('./utils/mobile/mobile.data');
+const alertFeature = require('./utils/mobile/alert.data');
 const passport = require('passport');
 // const facebookAuth = require('./middlewares/facebookAuth');
 
@@ -75,9 +77,14 @@ const io = new Server(server);
 
 // console.log(socket.id);
 io.on('connection', (socket) => {
+  // This will recieve what data imported from mobile app
   socket.on('chat message', (msg) => {
-    console.log('message: ' + msg);
+    dataRecieved.dataRecieved(msg);
   });
+
+  // This will forward what recieved from the datascience to the mobile app
+  const res = alertFeature.alert();
+  socket.emit('alert', res);
 });
 
 module.exports = server;
