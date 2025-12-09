@@ -83,8 +83,18 @@ io.on('connection', (socket) => {
   });
 
   // This will forward what recieved from the datascience to the mobile app
-  const res = alertFeature.alert();
-  socket.emit('alert', res);
+  // Send alerts whenever alertFeature emits a new alert
+  // const alertListener = (newAlert) => {
+  //   console.log('Sending new alert to client:', newAlert);
+  //   socket.emit('alert', newAlert);
+  // };
+  // alertFeature.alertEmitter.on('newAlert', alertListener);
+  // // alertFeature.on('newAlert', alertListener);
+  // // socket.emit('alert', alertFeature.alert());
+
+  // socket.on('disconnect', () => {
+  //   alertFeature.alertEmitter.removeListener('newAlert', alertListener);
+  // });
 });
 
 module.exports = server;
