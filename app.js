@@ -73,7 +73,12 @@ app.use(globalErrorHandler);
 // Testing Socket
 
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: '*', // or your app IP
+    methods: ['GET', 'POST'],
+  },
+});
 
 // console.log(socket.id);
 io.on('connection', (socket) => {
@@ -84,18 +89,30 @@ io.on('connection', (socket) => {
 
   // This will forward what recieved from the datascience to the mobile app
   // Send alerts whenever alertFeature emits a new alert
-  // const alertListener = (newAlert) => {
-  //   console.log('Sending new alert to client:', newAlert);
-  //   socket.emit('alert', newAlert);
-  // };
-  // alertFeature.alertEmitter.on('newAlert', alertListener);
-  // // alertFeature.on('newAlert', alertListener);
-  // // socket.emit('alert', alertFeature.alert());
+  // socket.emit('alert', alertFeature.getAlert());
 
-  // socket.on('disconnect', () => {
-  //   alertFeature.alertEmitter.removeListener('newAlert', alertListener);
-  // });
+  const alertListener = (newAlert) => {
+    console.log('Sending new alert to client:', newAlert);
+    socket.emit('alert', newAlert);
+  };
+  alertFeature.alertEmitter.removeAllListeners('newAlert');
+  alertFeature.alertEmitter.on('newAlert', alertListener);
+
+  socket.on('disconnect', () => {
+    alertFeature.alertEmitter.removeListener('newAlert', alertListener);
+    console.log('Client disconnected', socket.id);
+  });
 });
+
+// This is when a new alert comes i wanna trigger it
+// it will be simulated as the data science server gives me an alert
+// this is just for demo
+
+setTimeout(() => {
+  alertFeature.updateAlert(
+    '🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 Critical alert from data science server!'
+  );
+}, 1000);
 
 module.exports = server;
 // module.exports = app;
