@@ -74,7 +74,12 @@ app.use(globalErrorHandler);
 // Testing Socket
 
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: '*', // or your app IP
+    methods: ['GET', 'POST'],
+  },
+});
 
 // console.log(socket.id);
 io.on('connection', (socket) => {
@@ -86,17 +91,14 @@ io.on('connection', (socket) => {
 
   // This will forward what recieved from the datascience to the mobile app
   // Send alerts whenever alertFeature emits a new alert
-  // const alertListener = (newAlert) => {
-  //   console.log('Sending new alert to client:', newAlert);
-  //   socket.emit('alert', newAlert);
-  // };
-  // alertFeature.alertEmitter.on('newAlert', alertListener);
-  // // alertFeature.on('newAlert', alertListener);
-  // // socket.emit('alert', alertFeature.alert());
-
-  // socket.on('disconnect', () => {
-  //   alertFeature.alertEmitter.removeListener('newAlert', alertListener);
-  // });
+  const alertListener = (newAlert) => {
+    console.log('Sending new alert to client:', newAlert);
+    socket.emit('alert', newAlert);
+    socket.emit('test response', alert); //sends the alert back to the mobile
+  };
+  alertFeature.alertEmitter.on('newAlert', alertListener);
+  alertFeature.alertEmitter.removeAllListeners('newAlert');
+  alertFeature.alertEmitter.on('newAlert', alertListener);
 
   // Handles test messages from mobile
 
@@ -107,20 +109,20 @@ io.on('connection', (socket) => {
     dsSocket.emit('vitals Stream', msg);
   });
 
-  // Python DS → Backend → Mobile
-
-  const alertListener = (alert) => {
-    console.log('DS → Backend → Mobile:', alert);
-    socket.emit('test response', alert); //sends the alert back to the mobile
-  };
-
   dsSocket.on('prediction Result', alertListener); // listens for alerts from ds server
 
   socket.on('disconnect', () => {
-    console.log('Mobile disconnected');
+    alertFeature.alertEmitter.removeListener('newAlert', alertListener);
+    console.log('Client disconnected', socket.id);
     dsSocket.removeListener('prediction Result', alertListener);
   });
 });
+
+setTimeout(() => {
+  alertFeature.updateAlert(
+    '🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 Critical alert from data science server!'
+  );
+}, 1000);
 
 module.exports = server;
 // module.exports = app;
