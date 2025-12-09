@@ -18,6 +18,7 @@ const { join } = require('node:path');
 const { Server } = require('socket.io');
 const dataRecieved = require('./utils/mobile/mobile.data');
 const alertFeature = require('./utils/mobile/alert.data');
+const dsSocket = require('./utils/dataScience/dsClient');
 const passport = require('passport');
 // const facebookAuth = require('./middlewares/facebookAuth');
 
@@ -82,6 +83,7 @@ const io = new Server(server, {
 
 // console.log(socket.id);
 io.on('connection', (socket) => {
+  console.log('Mobile connected:', socket.id);
   // This will recieve what data imported from mobile app
   socket.on('chat message', (msg) => {
     dataRecieved.dataRecieved(msg);
@@ -89,24 +91,32 @@ io.on('connection', (socket) => {
 
   // This will forward what recieved from the datascience to the mobile app
   // Send alerts whenever alertFeature emits a new alert
-  // socket.emit('alert', alertFeature.getAlert());
-
   const alertListener = (newAlert) => {
     console.log('Sending new alert to client:', newAlert);
-    socket.emit('alert', newAlert);
+    // socket.emit('alert', newAlert);
+    socket.emit('test response', newAlert); //sends the alert back to the mobile
   };
+  alertFeature.alertEmitter.on('newAlert', alertListener);
   alertFeature.alertEmitter.removeAllListeners('newAlert');
   alertFeature.alertEmitter.on('newAlert', alertListener);
+
+  // Handles test messages from mobile
+
+  socket.on('test', (msg) => {
+    console.log('Backend received test data:', msg);
+
+    // forward to Python DS server
+    dsSocket.emit('vitals Stream', msg);
+  });
+
+  dsSocket.on('prediction Result', alertListener); // listens for alerts from ds server
 
   socket.on('disconnect', () => {
     alertFeature.alertEmitter.removeListener('newAlert', alertListener);
     console.log('Client disconnected', socket.id);
+    dsSocket.removeListener('prediction Result', alertListener);
   });
 });
-
-// This is when a new alert comes i wanna trigger it
-// it will be simulated as the data science server gives me an alert
-// this is just for demo
 
 setTimeout(() => {
   alertFeature.updateAlert(
