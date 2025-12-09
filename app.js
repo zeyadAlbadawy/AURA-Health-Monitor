@@ -93,8 +93,8 @@ io.on('connection', (socket) => {
   // Send alerts whenever alertFeature emits a new alert
   const alertListener = (newAlert) => {
     console.log('Sending new alert to client:', newAlert);
-    socket.emit('alert', newAlert);
-    socket.emit('test response', alert); //sends the alert back to the mobile
+    // socket.emit('alert', newAlert);
+    socket.emit('test response', newAlert); //sends the alert back to the mobile
   };
   alertFeature.alertEmitter.on('newAlert', alertListener);
   alertFeature.alertEmitter.removeAllListeners('newAlert');
