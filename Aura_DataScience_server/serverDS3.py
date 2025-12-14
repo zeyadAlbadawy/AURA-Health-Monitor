@@ -179,4 +179,5 @@ def create_alert(uid, time, param, value, unit, level, desc, adv):
 
 if __name__ == '__main__':
     print(f"starting aura server... (alert after {time_limit_sec} seconds)")
+
     uvicorn.run(app, host='0.0.0.0', port=5000)
